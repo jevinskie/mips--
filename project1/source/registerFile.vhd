@@ -39,30 +39,36 @@ architecture regfile_arch of registerFile is
 
   -- enable lines... use en(x) to select
   -- individual lines for each register
-	signal en		:	std_logic_vector(31 downto 0);
+	signal en		:	std_logic_vector(31 downto 1);
 
 begin
 
 	-- registers process
 	registers : process (clk, nReset, en)
-  begin
+      variable vwsel : integer;
+   begin
     -- one register if statement
 		if (nReset = '0') then
 			for i in reg'range loop
             reg(i) <= (others => '0');
          end loop;
     elsif (rising_edge(clk)) then
-       reg <= next_reg;
-    end if;
+       for i in reg'range loop
+          if (en(i) = '1') then
+            reg(i) <= wdat;
+         end if;
+         end loop;
+      end if;
   end process;
 
-   nsl : process(wsel, wen, wdat, reg)
+  process (wsel, wen)
+     variable vwsel : integer;
    begin
-      next_reg <= reg;
-      if (wen = '1') then
-         if (wsel /= "00000") then
-            next_reg(to_integer(unsigned(wsel))) <= wdat;
-         end if;
+      en <= (others => '0');
+
+      vwsel := to_integer(unsigned(wsel));
+      if (vwsel /= 0 and wen = '1') then
+         en(vwsel) <= '1';
       end if;
    end process;
 
