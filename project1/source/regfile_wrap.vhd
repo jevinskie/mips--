@@ -23,23 +23,23 @@ end registerFile;
 
 architecture wrapper of registerFile is
 
-   signal d : regfile_in_type;
-   signal q : regfile_out_type;
+   signal reg_in  : regfile_in_type;
+   signal reg_out : regfile_out_type;
 
 begin
 
    regfile_b : regfile port map (
-      clk => clk, nrst => nReset, d => d, q => q
+      clk => clk, nrst => nReset, d => reg_in, q => reg_out
    );
 
-   d.wen <= wen;
-   d.wsel <= to_reg_index(wsel);
-   d.wdat <= unsigned(wdat);
-   d.rsel1 <= to_reg_index(rsel1);
-   d.rsel2 <= to_reg_index(rsel2);
+   reg_in.wen <= wen;
+   reg_in.wsel <= to_reg_index(wsel);
+   reg_in.wdat <= unsigned(wdat);
+   reg_in.rsel1 <= to_reg_index(rsel1);
+   reg_in.rsel2 <= to_reg_index(rsel2);
 
-   rdat1 <= std_logic_vector(q.rdat1);
-   rdat2 <= std_logic_vector(q.rdat2);
+   rdat1 <= std_logic_vector(reg_out.rdat1);
+   rdat2 <= std_logic_vector(reg_out.rdat2);
 
 end;
 
