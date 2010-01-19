@@ -39,7 +39,7 @@ architecture test of aluz_tb is
 
       -- make sure INT_MAX - 1 works
       (d => (a => x"FFFFFFFF", b => to_word(1), op => sub_alu_op),
-       q => (r => to_word(0), n => '1', v => '0', z => '0')),
+       q => (r => x"FFFFFFFE", n => '1', v => '0', z => '0')),
 
       -- test out AND
       (d => (a => x"DEADBEEF", b => x"FFFF0000", op => and_alu_op),
@@ -51,12 +51,21 @@ architecture test of aluz_tb is
 
       -- test out NOR
       (d => (a => x"AA000055", b => x"FF00AA00", op => nor_alu_op),
-       q => (r => x"00FF0000", n => '0', v => '0', z => '0')),
+       q => (r => x"00FF55AA", n => '0', v => '0', z => '0')),
 
       -- test out XOR
       (d => (a => x"AAFF0003", b => x"55FF0012", op => xor_alu_op),
-       q => (r => x"FF000011", n => '1', v => '0', z => '0'))
-   );
+       q => (r => x"FF000011", n => '1', v => '0', z => '0')),
+
+      -- test out SLL
+      (d => (a => x"00000001", b => x"00000004", op => sll_alu_op),
+       q => (r => x"00000010", n => '0', v => '0', z => '0')),
+
+      -- test out SRL
+      (d => (a => x"00000010", b => x"00000004", op => srl_alu_op),
+       q => (r => x"00000001", n => '0', v => '0', z => '0'))
+ 
+    );
 
 
 begin
@@ -89,15 +98,22 @@ begin
       end loop;
 
       -- try to add numbers
---      alu_in.op <= add_alu_op;
---      for i in 0 to 7 loop
---         for j in 0 to 7 loop
---            alu_in.a <= to_word(i);
---            alu_in.b <= to_word(j);
---            tick(clk, 1);
---            assert alu_out.r = to_word(i+j);
---         end loop;
---      end loop;
+      alu_in.op <= add_alu_op;
+      for i in 0 to 7 loop
+         for j in 0 to 7 loop
+            alu_in.a <= to_word(i);
+            alu_in.b <= to_word(j);
+            tick(clk, 1);
+            assert alu_out.r = to_word(i+j);
+            assert alu_out.n = '0';
+            assert alu_out.v = '0';
+            if j = 0 and i = 0 then
+               assert alu_out.z = '1';
+            else
+               assert alu_out.z = '0';
+            end if;
+         end loop;
+      end loop;
       
       -- stop the clock
       stop <= '1';

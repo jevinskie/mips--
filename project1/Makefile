@@ -25,9 +25,11 @@ registerFile_tb.vhd : regfile_wrap.vhd
 #regTest.vhd: registerFile.vhd
 regTest.vhd : regfile_wrap.vhd
 
-alu.vhd : common.vhd
-alu_wrap.vhd : common.vhd alu.vhd
-alu_tb.vhd : common.vhd common_tb.vhd alu.vhd
+aluz.vhd : common.vhd
+alu.vhd : common.vhd aluz.vhd
+aluz_tb.vhd : common.vhd common_tb.vhd aluz.vhd
+
+aluTest.vhd : alu.vhd bintohexDecoder.vhd
 
 # end VHDL files (keep this)
 

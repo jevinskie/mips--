@@ -34,6 +34,27 @@ package common is
    type alu_op_type is (sll_alu_op, srl_alu_op, add_alu_op, sub_alu_op,
                         and_alu_op, nor_alu_op, or_alu_op, xor_alu_op);
 
+   type alu_op_enc_lut_array is array(alu_op_type) of std_logic_vector(2 downto 0);
+
+   constant alu_op_enc_lut : alu_op_enc_lut_array := (
+      sll_alu_op => "000",
+      srl_alu_op => "001",
+      add_alu_op => "010",
+      sub_alu_op => "011",
+      and_alu_op => "100",
+      nor_alu_op => "101",
+      or_alu_op  => "110",
+      xor_alu_op => "111"
+   );
+
+   function to_slv (
+      op_type : alu_op_type
+   ) return std_logic_vector;
+
+   function to_alu_op (
+      op_slv : std_logic_vector
+   ) return alu_op_type;
+
 end;
 
 package body common is
@@ -47,7 +68,7 @@ package body common is
       if i >= reg_index'low and i <= reg_index'high then
          return i;
       else
-         assert false;
+         --assert false;
          return 0;
       end if;
    end;
@@ -65,6 +86,28 @@ package body common is
    begin
       return to_unsigned(i_int, dword'length);
    end;
+
+   function to_slv (
+      op_type : alu_op_type
+   ) return std_logic_vector is
+   begin
+      return alu_op_enc_lut(op_type);
+   end;
+
+   function to_alu_op (
+      op_slv : std_logic_vector
+   ) return alu_op_type is
+   begin
+      for op in alu_op_type loop
+         if op_slv = alu_op_enc_lut(op) then
+            return op;
+         end if;
+      end loop;
+
+      --assert false;
+      return sll_alu_op;
+   end;
+
 
 end;
 
