@@ -16,12 +16,18 @@ VPATH= $(WORKDIR)
 # begin VHDL files (keep this)
 
 common_tb.vhd : common.vhd
+
 regfile.vhd : common.vhd
 regfile_tb.vhd : common.vhd common_tb.vhd regfile.vhd
 regfile_wrap.vhd : common.vhd regfile.vhd
+#registerFile_tb.vhd : registerFile.vhd
+registerFile_tb.vhd : regfile_wrap.vhd
+#regTest.vhd: registerFile.vhd
+regTest.vhd : regfile_wrap.vhd
 
-registerFile_tb.vhd : registerFile.vhd
-regTest.vhd: registerFile.vhd
+alu.vhd : common.vhd
+alu_wrap.vhd : common.vhd alu.vhd
+alu_tb.vhd : common.vhd common_tb.vhd alu.vhd
 
 # end VHDL files (keep this)
 

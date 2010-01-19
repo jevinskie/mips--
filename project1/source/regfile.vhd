@@ -82,6 +82,7 @@ begin
          en_mask(d.wsel) := '1';
       end if;
 
+      -- write out the registers according to the enable mask
       for i in en_mask'range loop
          if en_mask(i) = '1' then
             v.registers(i) := d.wdat;
@@ -92,23 +93,29 @@ begin
       rin <= v;
 
       -- drive module outputs
+
+      -- output rdat1
       if d.rsel1 = 0 then
          q.rdat1 <= (others => '0');
       else
          q.rdat1 <= r.registers(d.rsel1);
       end if;
 
+      -- output rdat2
       if d.rsel2 = 0 then
          q.rdat2 <= (others => '0');
       else
          q.rdat2 <= r.registers(d.rsel2);
       end if;
+
    end process;
 
 
+   -- the register process
    regs : process(clk, nrst)
    begin
       if nrst = '0' then
+         -- reset registers to zero
          for i in r.registers'range loop
             r.registers(i) <= (others => '0');
          end loop;
