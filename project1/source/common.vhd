@@ -17,11 +17,11 @@ package common is
    subtype word   is unsigned(31 downto 0);
    subtype dword  is unsigned(63 downto 0);
 
-   subtype nibble_slv   is std_logic_vector(3 downto 0);
-   subtype byte_slv     is std_logic_vector(7 downto 0);
-   subtype hword_slv    is std_logic_vector(15 downto 0);
-   subtype word_slv     is std_logic_vector(31 downto 0);
-   subtype dword_slv    is std_logic_vector(63 downto 0);
+   subtype nibble_slv   is std_logic_vector(nibble'range);
+   subtype byte_slv     is std_logic_vector(byte'range);
+   subtype hword_slv    is std_logic_vector(hword'range);
+   subtype word_slv     is std_logic_vector(word'range);
+   subtype dword_slv    is std_logic_vector(dword'range);
 
    function to_word (
       i_int : integer

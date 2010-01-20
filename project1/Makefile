@@ -27,6 +27,9 @@ regTest.vhd : registerFile.vhd
 shifter_r.vhd : common.vhd shifter_p.vhd
 shifter_tb.vhd : common.vhd common_tb.vhd shifter_p.vhd shifter_r.vhd
 
+addsub_r.vhd : common.vhd addsub_p.vhd
+addsub_tb.vhd : common.vhd common_tb.vhd addsub_p.vhd addsub_r.vhd
+
 alu_r.vhd : common.vhd alu_p.vhd
 alu.vhd : common.vhd alu_p.vhd alu_r.vhd
 alu_tb.vhd : common.vhd common_tb.vhd alu_p.vhd alu_r.vhd
