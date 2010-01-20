@@ -1,0 +1,23 @@
+In order to be able to continue my records-based methodology
+while working within the course entity declarations and
+quartus' lack of records in entity decls, I have come up with
+with the following solution:
+
+* all my test benches utilize records-based entities
+
+* all of my blocks expose a records-based entity
+
+* to submit my blocks for scripted grading, I write wrappers
+   that take my records-based entities and expose the
+   course-defined entities. lets call these records->course
+   wrappers for short. these wrappers use the exact names
+   as defined by the course for its approprate block
+
+* to cope with quartus choking on records in entity decls,
+   I run the `compile` command on the records->course wrapper
+   making a synthesized entity with the course decls
+
+* to be able to run my test benches on these synthesized blocks,
+   I write course->records wrappers. these wrappers mean I could
+   also share my records-based benches with the rest of the class
+

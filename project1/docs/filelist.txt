@@ -1,5 +1,9 @@
-filelist.txt
-   - this file
+docs/
+   filelist.txt
+      - this file
+   wrapper_info.txt
+      - information related to my use of wrappers to interface with the class'
+        entity decls
 source/
    alu.vhd
       - provides an architecture for the course 'alu' component by wrapping the 'alu_r' component
