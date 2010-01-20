@@ -22,11 +22,7 @@ begin
    -- combinatiorial process
    comb : process(d)
       variable res : word;
-      variable big_res : unsigned(res'high+1 downto 0);
    begin
-
-      -- clear out the extended result
-      big_res := (others => '0');
 
       -- module algorithm
       case d.op is
