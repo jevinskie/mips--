@@ -1,0 +1,26 @@
+filelist.txt
+   - this file
+source/
+   alu.vhd
+      - provides an architecture for the course 'alu' component by wrapping the 'alu_r' component
+   alu_p.vhd
+      - contains the 'alu_pkg' package that holds some alu types and the 'alu_r' records-style component
+   alu_r.vhd
+      - provides a "two process" architecture for the 'alu_r' component
+   alu_t2m.vhd
+      - provides an architecture for the 'alu_r' component by wrapping a course 'alu' component
+   alu_tb.vhd
+      - a testbench for the 'alu_r' component
+   regfile_p.vhd
+      - contains the 'regfile_pkg' package that holds some regfile types and the 'regfile_r' records-style component
+   regfile_r.vhd
+      - provides a two process architecture for the 'regfile_r' component
+   regfile_tb.vhd
+      - a testbench for the 'regfile_r' component
+   regfile_t2m.vhd
+      - provides an architecture for the 'regfile_r' component by wrapping a course 'registerFile' component
+   registerFile.vhd
+      - provides an architecture for the course 'registerFile' component by wrapping the 'regfile_r' component
+   registerFile_tb.vhd
+      - the course provided test bench for the register file
+
