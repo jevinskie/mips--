@@ -1,7 +1,7 @@
 -- a wrapper for the alu course component
 
 use work.common.all;
-use work.aluz_comp.all;
+use work.alu_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -21,7 +21,7 @@ architecture wrapper of alu is
 
 begin
 
-   aluz_b : aluz port map (
+   alu_b : alu_r port map (
       d => alu_in, q => alu_out
    );
 

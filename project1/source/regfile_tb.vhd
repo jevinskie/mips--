@@ -2,7 +2,7 @@
 
 use work.common.all;
 use work.common_tb.all;
-use work.regfile_comp.all;
+use work.regfile_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -22,7 +22,7 @@ architecture test of regfile_tb is
 
 begin
 
-   regfile_b : regfile port map (
+   regfile_b : regfile_r port map (
       clk => clk, nrst => nrst, d => reg_in, q => reg_out
    );
 

@@ -17,17 +17,17 @@ VPATH= $(WORKDIR)
 
 common_tb.vhd : common.vhd
 
-regfile.vhd : common.vhd
-regfile_tb.vhd : common.vhd common_tb.vhd regfile.vhd
-regfile_wrap.vhd : common.vhd regfile.vhd
-#registerFile_tb.vhd : registerFile.vhd
-registerFile_tb.vhd : regfile_wrap.vhd
-#regTest.vhd: registerFile.vhd
-regTest.vhd : regfile_wrap.vhd
+regfile_r.vhd : common.vhd regfile_p.vhd
+regfile_tb.vhd : common.vhd common_tb.vhd regfile_p.vhd regfile_r.vhd
+regfile_t2m.vhd : common.vhd regfile_p.vhd
+registerFile_tb.vhd : common.vhd registerFile.vhd
+registerFile.vhd : common.vhd regfile_p.vhd regfile_r.vhd
+regTest.vhd: registerFile.vhd
 
-aluz.vhd : common.vhd
-alu.vhd : common.vhd aluz.vhd
-aluz_tb.vhd : common.vhd common_tb.vhd aluz.vhd
+alu_r.vhd : common.vhd alu_p.vhd
+alu.vhd : common.vhd alu_p.vhd alu_r.vhd
+alu_tb.vhd : common.vhd common_tb.vhd alu_p.vhd alu_r.vhd
+alu_t2m.vhd : common.vhd alu_p.vhd
 
 aluTest.vhd : alu.vhd bintohexDecoder.vhd
 

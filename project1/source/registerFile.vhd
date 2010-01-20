@@ -1,93 +1,45 @@
--- 32 bit version register file
--- evillase
+-- a wrapper for the registerFile course component
+
+use work.common.all;
+use work.regfile_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity registerFile is
-	port
-	(
-		-- Write data input port
-		wdat		:	in	std_logic_vector (31 downto 0);
-		-- Select which register to write
-		wsel		:	in	std_logic_vector (4 downto 0);
-		-- Write Enable for entire register file
-		wen			:	in	std_logic;
-		-- clock, positive edge triggered
-		clk			:	in	std_logic;
-		-- REMEMBER: nReset-> '0' = RESET, '1' = RUN
-		nReset	:	in	std_logic;
-		-- Select which register to read on rdat1 
-		rsel1		:	in	std_logic_vector (4 downto 0);
-		-- Select which register to read on rdat2
-		rsel2		:	in	std_logic_vector (4 downto 0);
-		-- read port 1
-		rdat1		:	out	std_logic_vector (31 downto 0);
-		-- read port 2
-		rdat2		:	out	std_logic_vector (31 downto 0)
-		);
+   port (
+      wdat     : in  std_logic_vector (31 downto 0);
+      wsel     : in  std_logic_vector (4 downto 0);
+      wen      : in  std_logic;
+      clk      : in  std_logic;
+      nReset   : in  std_logic;
+      rsel1    : in  std_logic_vector (4 downto 0);
+      rsel2    : in  std_logic_vector (4 downto 0);
+      rdat1    : out std_logic_vector (31 downto 0);
+      rdat2    : out std_logic_vector (31 downto 0)
+   );
 end registerFile;
 
-architecture regfile_arch of registerFile is
+architecture wrapper of registerFile is
 
-	constant BAD1	:	std_logic_vector		:= x"BAD1BAD1";
-
-	type REGISTER32 is array (1 to 31) of std_logic_vector(31 downto 0);
-	signal reg	:	REGISTER32;				-- registers as an array
-   signal next_reg : REGISTER32;
-
-  -- enable lines... use en(x) to select
-  -- individual lines for each register
-	signal en		:	std_logic_vector(31 downto 1);
+   signal reg_in  : regfile_in_type;
+   signal reg_out : regfile_out_type;
 
 begin
 
-	-- registers process
-	registers : process (clk, nReset, en)
-      variable vwsel : integer;
-   begin
-    -- one register if statement
-		if (nReset = '0') then
-			for i in reg'range loop
-            reg(i) <= (others => '0');
-         end loop;
-    elsif (rising_edge(clk)) then
-       for i in reg'range loop
-          if (en(i) = '1') then
-            reg(i) <= wdat;
-         end if;
-         end loop;
-      end if;
-  end process;
+   regfile_b : regfile_r port map (
+      clk => clk, nrst => nReset, d => reg_in, q => reg_out
+   );
 
-  process (wsel, wen)
-     variable vwsel : integer;
-   begin
-      en <= (others => '0');
+   reg_in.wen <= wen;
+   reg_in.wsel <= to_reg_index(wsel);
+   reg_in.wdat <= unsigned(wdat);
+   reg_in.rsel1 <= to_reg_index(rsel1);
+   reg_in.rsel2 <= to_reg_index(rsel2);
 
-      vwsel := to_integer(unsigned(wsel));
-      if (vwsel /= 0 and wen = '1') then
-         en(vwsel) <= '1';
-      end if;
-   end process;
+   rdat1 <= std_logic_vector(reg_out.rdat1);
+   rdat2 <= std_logic_vector(reg_out.rdat2);
 
-   output : process(rsel1, rsel2, reg)
-      variable vsel1, vsel2 : integer;
-   begin
-      vsel1 := to_integer(unsigned(rsel1));
-      if (vsel1 /= 0) then
-         rdat1 <= reg(vsel1);
-      else
-         rdat1 <= (others => '0');
-      end if;
+end;
 
-      vsel2 := to_integer(unsigned(rsel2));
-      if (vsel2 /= 0) then
-         rdat2 <= reg(vsel2);
-      else
-         rdat2 <= (others => '0');
-      end if;
-   end process;
-
-end regfile_arch;
