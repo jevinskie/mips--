@@ -25,44 +25,23 @@ architecture dataflow of shifter_r is
 
    signal staged : staged_sig_type;
 
-   function zero_fill_left (
-      i : unsigned;
-      n : positive
-   ) return unsigned is
-      variable r : unsigned(n-1 downto 0);
-   begin
-      r := (others => '0');
-      r(i'length-1 downto 0) := i;
-      
-      return r;
-   end;
-
-   function zero_fill_right (
-      i : unsigned;
-      n : positive
-   ) return unsigned is
-      variable r : unsigned(n-1 downto 0);
-   begin
-      r := (others => '0');
-      r(n-1 downto n-i'length) := i;
-      
-      return r;
-   end;
-
 begin
+
+   -- this barrel shifter is implemented as a series
+   -- of fixed offset shifts that go to a mux that
+   -- either selects the newly shifted number
+   -- or the number without the shift
 
    staged(0) <= d.a;
 
    single_shift :
-   for i in 1 to 4 generate
+   for i in 1 to 5 generate
       staged(i) <= staged(i-1) when d.b(i-1) = '0' else
-                   zero_fill_right(staged(i-1)(word'length-1-binpow(i-1) downto 0), word'length) when to_the_left else
-                   zero_fill_left(staged(i-1)(word'length-1 downto binpow(i-1)), word'length);
+                   zero_fill_right(staged(i-1)(word'high-binpow(i-1) downto 0), word'length) when to_the_left else
+                   zero_fill_left(staged(i-1)(word'high downto binpow(i-1)), word'length);
    end generate single_shift;
 
-   q.r <= staged(4);
-
-   --q.r <= zero_fill_right(d.a(3 downto 0), 32);
+   q.r <= staged(5);
 
 end;
 

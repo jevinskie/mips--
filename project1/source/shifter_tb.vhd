@@ -72,6 +72,10 @@ begin
       -- start the clock and reset
       stop <= '0';
 
+      -- go through the test vectors for the left shifter
+      -- note: i didnt feel it was worthwile to write
+      -- corresponding vectors for the right shifter
+      -- with all of the other automated tests
       for i in left_vecs'range loop
          sl_in <= left_vecs(i).d;
          tick(clk, 1);
@@ -84,6 +88,34 @@ begin
          sl_in.b <= to_unsigned(i, 5);
          tick(clk, 1);
          assert sl_out.r = to_word(1) sll i;
+      end loop;
+
+      -- shift right a single bit through the entire 32-bits
+      sr_in.a <= x"80000000";
+      for i in word'reverse_range loop
+         sr_in.b <= to_unsigned(i, 5);
+         tick(clk, 1);
+         assert sr_out.r = x"80000000" srl i;
+      end loop;
+
+      -- try random left shifting
+      for i in 0 to 255 loop
+         prng_gen(rand_state, rand);
+         sl_in.a <= rand;
+         prng_gen(rand_state, rand);
+         sl_in.b <= resize(rand, 5);
+         tick(clk, 1);
+         assert sl_out.r = sl_in.a sll to_integer(resize(sl_in.b, 5));
+      end loop;
+
+      -- try random right shifting
+      for i in 0 to 255 loop
+         prng_gen(rand_state, rand);
+         sr_in.a <= rand;
+         prng_gen(rand_state, rand);
+         sr_in.b <= resize(rand, 5);
+         tick(clk, 1);
+         assert sr_out.r = sr_in.a srl to_integer(resize(sr_in.b, 5));
       end loop;
       
       -- stop the clock

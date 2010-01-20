@@ -22,7 +22,10 @@ regfile_tb.vhd : common.vhd common_tb.vhd regfile_p.vhd regfile_r.vhd
 regfile_t2m.vhd : common.vhd regfile_p.vhd
 registerFile_tb.vhd : common.vhd registerFile.vhd
 registerFile.vhd : common.vhd regfile_p.vhd regfile_r.vhd
-regTest.vhd: registerFile.vhd
+regTest.vhd : registerFile.vhd
+
+shifter_r.vhd : common.vhd shifter_p.vhd
+shifter_tb.vhd : common.vhd common_tb.vhd shifter_p.vhd shifter_r.vhd
 
 alu_r.vhd : common.vhd alu_p.vhd
 alu.vhd : common.vhd alu_p.vhd alu_r.vhd

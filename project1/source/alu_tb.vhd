@@ -33,13 +33,13 @@ architecture test of alu_tb is
       (d => (a => to_word(0), b => to_word(0), op => add_alu_op),
        q => (r => to_word(0), n => '0', v => '0', z => '1')),
       
-      -- overflow to 0
-      (d => (a => x"FFFFFFFF", b => to_word(1), op => add_alu_op),
-       q => (r => to_word(0), n => '0', v => '1', z => '1')),
+      -- -1 + 1 = 0
+      (d => (a => to_word(-1), b => to_word(1), op => add_alu_op),
+       q => (r => to_word(0), n => '0', v => '0', z => '1')),
 
-      -- make sure INT_MAX - 1 works
-      (d => (a => x"FFFFFFFF", b => to_word(1), op => sub_alu_op),
-       q => (r => x"FFFFFFFE", n => '1', v => '0', z => '0')),
+      -- -1 - 1 = -2
+      (d => (a => to_word(-1), b => to_word(1), op => sub_alu_op),
+       q => (r => to_word(-2), n => '1', v => '0', z => '0')),
 
       -- test out AND
       (d => (a => x"DEADBEEF", b => x"FFFF0000", op => and_alu_op),
@@ -96,7 +96,7 @@ begin
          tick(clk, 1);
          assert alu_out = vecs(i).q;
       end loop;
-
+      stop <= '1';
       -- try to add numbers
       alu_in.op <= add_alu_op;
       for i in 0 to 7 loop

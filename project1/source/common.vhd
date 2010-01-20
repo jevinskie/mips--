@@ -67,6 +67,28 @@ package common is
       op_slv : std_logic_vector
    ) return alu_op_type;
 
+
+   function binlog (
+      i : positive
+   ) return natural;
+
+   function binpow (
+      i : natural
+   ) return natural;
+
+
+  function zero_fill_left (
+      i           : unsigned;
+      bit_width   : positive
+   ) return unsigned;
+   
+   function zero_fill_right (
+      i           : unsigned;
+      bit_width   : positive
+   ) return unsigned;
+
+
+
 end;
 
 package body common is
@@ -76,14 +98,22 @@ package body common is
       i_int : integer
    ) return word is
    begin
-      return to_unsigned(i_int, word'length);
+      if i_int < 0 then
+         return unsigned(to_signed(i_int, word'length));
+      else
+         return to_unsigned(i_int, word'length);
+      end if;
    end;
 
    function to_dword (
       i_int : integer
    ) return dword is
    begin
-      return to_unsigned(i_int, dword'length);
+      if i_int < 0 then
+         return unsigned(to_signed(i_int, dword'length));
+      else
+         return to_unsigned(i_int, dword'length);
+      end if;
    end;
 
 
@@ -130,6 +160,64 @@ package body common is
       return sll_alu_op;
    end;
 
+
+   function binlog (
+      i : positive
+   ) return natural is
+      variable tmp : natural := i;
+      variable log : natural := 0;
+   begin
+      while (tmp > 0) loop
+         tmp := tmp / 2;
+         log := log + 1;
+      end loop;
+
+      return log;
+   end;
+
+
+   function binpow (
+      i : natural
+   ) return natural is
+      variable tmp : natural := i;
+      variable pow : natural := 1;
+   begin
+      while (tmp > 0) loop
+         tmp := tmp - 1;
+         pow := pow * 2;
+      end loop;
+
+      return pow;
+   end;
+
+
+   -- this function zero fills (to the left)
+   -- the passed number to the specified bit width
+   function zero_fill_left (
+      i           : unsigned;
+      bit_width   : positive
+   ) return unsigned is
+      variable r : unsigned(bit_width-1 downto 0);
+   begin
+      r := (others => '0');
+      r(i'length-1 downto 0) := i;
+      
+      return r;
+   end;
+
+   -- this function zero fills (to the right)
+   -- the passed number to the specified bit width
+   function zero_fill_right (
+      i           : unsigned;
+      bit_width   : positive
+   ) return unsigned is
+      variable r : unsigned(bit_width-1 downto 0);
+   begin
+      r := (others => '0');
+      r(bit_width-1 downto bit_width-i'length) := i;
+      
+      return r;
+   end;
 
 end;
 

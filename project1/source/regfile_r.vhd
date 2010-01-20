@@ -19,6 +19,7 @@ end;
 
 architecture twoproc of regfile_r is
 
+   -- only go down to 1 because the r0 is tied to logic low
    type registers_type is array (reg_index'high downto 1) of word;
 
    type reg_type is record
@@ -80,9 +81,7 @@ begin
    begin
       if nrst = '0' then
          -- reset registers to zero
-         for i in r.registers'range loop
-            r.registers(i) <= (others => '0');
-         end loop;
+         r.registers <= (others => (others => '0'));
       elsif rising_edge(clk) then
          r <= rin;
       end if;
