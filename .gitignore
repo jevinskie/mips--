@@ -1,0 +1,9 @@
+.*.swp
+work/
+compile.log
+.nfs*
+*.sof
+transcript
+vsim.wlf
+mapped/
+._*/
