@@ -14,6 +14,7 @@ entity alu is
           NEGATIVE, OVERFLOW, ZERO: out std_logic );
 end;
 
+
 architecture wrapper of alu is
 
    signal alu_in  : alu_in_type;
@@ -21,7 +22,7 @@ architecture wrapper of alu is
 
 begin
 
-   alu_b : alu_r port map (
+   alu_b : entity work.alu_r(add_shift) port map (
       d => alu_in, q => alu_out
    );
 

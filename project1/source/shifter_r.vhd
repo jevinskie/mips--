@@ -19,7 +19,7 @@ entity shifter_r is
 end;
 
 
-architecture dataflow of shifter_r is
+architecture barrel of shifter_r is
 
    type staged_sig_type is array (5 downto 0) of word;
 

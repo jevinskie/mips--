@@ -84,6 +84,11 @@ begin
 
       prng_init(rand_state, to_dword(243));
 
+      -- initialize inputs
+      alu_in.a <= (others => '0');
+      alu_in.b <= (others => '0');
+      alu_in.op <= sll_alu_op;
+
       -- start the clock and reset
       stop <= '0';
       nrst <= '0';
@@ -96,7 +101,8 @@ begin
          tick(clk, 1);
          assert alu_out = vecs(i).q;
       end loop;
-      stop <= '1';
+
+
       -- try to add numbers
       alu_in.op <= add_alu_op;
       for i in 0 to 7 loop
