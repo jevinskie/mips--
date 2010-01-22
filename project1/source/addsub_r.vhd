@@ -38,7 +38,7 @@ begin
    q.r <= r;
 
    -- carry in different than carry out -> overflow
-   q.v <= c(c'high+1) xor c(c'high);
+   q.v <= c(c'high) xor c(c'high-1);
 
 end;
 
