@@ -35,6 +35,10 @@ architecture test of addsub_tb is
       (d => (a => x"7FFFFFFF", b => to_word(1), sub => '0'),
        q => (r => x"80000000", v => '1')),
 
+      -- test overflow with subtraction
+      (d => (a => to_word(5), b => to_word(6), sub => '1'),
+       q => (r => to_word(-1), v => '0')),
+
       -- 0 + 0 = 0
       (d => (a => to_word(0), b => to_word(0), sub => '0'),
        q => (r => to_word(0), v => '0')),

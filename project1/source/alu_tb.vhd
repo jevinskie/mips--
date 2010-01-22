@@ -70,7 +70,7 @@ architecture test of alu_tb is
 
 begin
 
-   alu_b : entity work.alu_r(add_shift) port map (
+   alu_b : alu_r port map (
       d => alu_in, q => alu_out
    );
 
@@ -144,14 +144,9 @@ begin
          else
             assert alu_out.z = '0' report "zf";
          end if;
-
-         if (alu_in.a(alu_in.a'high) = alu_in.b(alu_in.b'high))
-             and (res(res'high) /= alu_in.a(alu_in.a'high))
-         then
-            assert alu_out.v = '1' report "vt";
-         else
-            assert alu_out.v = '0' report "vf";
-         end if;
+         
+         -- '1' because we're subtracting
+         assert alu_out.v = calc_overflow(alu_in.a, alu_in.b, res, '1') report "v";
       end loop;
       
       -- stop the clock

@@ -88,6 +88,12 @@ package common is
    ) return unsigned;
 
 
+   function calc_overflow (
+      a     : unsigned;
+      b     : unsigned;
+      r     : unsigned;
+      sub   : std_logic
+   ) return std_logic;
 
 end;
 
@@ -217,6 +223,42 @@ package body common is
       r(bit_width-1 downto bit_width-i'length) := i;
       
       return r;
+   end;
+
+
+   function calc_overflow (
+      a     : unsigned;
+      b     : unsigned;
+      r     : unsigned;
+      sub   : std_logic
+   ) return std_logic is
+      variable v : std_logic;
+   begin
+      assert (a'length = b'length) and (a'length = r'length);
+
+
+      -- the overflow logic
+      
+      if sub = '0' then
+         -- addition
+         -- same sign in and opposite sign result -> overflow
+         if (a(a'high) = b(b'high)) and (a(a'high) /= r(r'high)) then
+            v := '1';
+         else
+            v := '0';
+         end if;
+      else
+         -- subtraction
+         -- if the operands have differing signs and the result is
+         -- the opposite sign of the subtrahend, overflow occured
+         if (a(a'high) /= b(b'high)) and (b(b'high) = r(r'high)) then
+            v := '1';
+         else
+            v := '0';
+         end if;
+      end if;
+
+      return v;
    end;
 
 end;

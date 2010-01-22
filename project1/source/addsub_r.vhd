@@ -17,7 +17,7 @@ end;
 
 
 architecture ripple of addsub_r is
-   signal c    : std_logic_vector(word'length downto 0);
+   signal c    : std_logic_vector(word'high+1 downto 0);
    signal bn   : word;
    signal r    : word;
 begin
@@ -37,8 +37,8 @@ begin
 
    q.r <= r;
 
-   -- detect overflow when same-signed inputs lead to an opposite sign result
-   q.v <= '1' when (d.a(d.a'high) = d.b(d.b'high)) and (r(r'high) /= d.a(d.a'high)) else '0';
+   -- carry in different than carry out -> overflow
+   q.v <= c(c'high+1) xor c(c'high);
 
 end;
 
