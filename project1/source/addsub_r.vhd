@@ -22,10 +22,13 @@ architecture ripple of addsub_r is
    signal r    : word;
 begin
 
+   -- create an inverted B for subtraction
    bn <= not d.b when d.sub = '1' else d.b;
 
+   -- set the carry in appropriately if subtracting
    c(0) <= '1' when d.sub = '1' else '0';
 
+   -- implement a simple ripple-carry adder with an array of full adders
    full_adders :
    for i in word'range generate
       r(i) <= (d.a(i) xor bn(i)) xor c(i);
@@ -34,6 +37,7 @@ begin
 
    q.r <= r;
 
+   -- detect overflow when same-signed inputs lead to an opposite sign result
    q.v <= '1' when (d.a(d.a'high) = d.b(d.b'high)) and (r(r'high) /= d.a(d.a'high)) else '0';
 
 end;

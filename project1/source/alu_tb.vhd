@@ -70,7 +70,7 @@ architecture test of alu_tb is
 
 begin
 
-   alu_b : alu_r port map (
+   alu_b : entity work.alu_r(add_shift) port map (
       d => alu_in, q => alu_out
    );
 
@@ -80,6 +80,7 @@ begin
    process
       variable rand_state : prng_state;
       variable rand  : word;
+      variable res   : word;
    begin
 
       prng_init(rand_state, to_dword(243));
@@ -119,6 +120,38 @@ begin
                assert alu_out.z = '0';
             end if;
          end loop;
+      end loop;
+
+      -- try some random subtractions
+      alu_in.op <= sub_alu_op;
+      for i in 0 to 255 loop
+         prng_gen(rand_state, rand);
+         alu_in.a <= rand;
+         
+         prng_gen(rand_state, rand);
+         alu_in.b <= rand;
+         
+         tick(clk, 1);
+
+         res := alu_in.a - alu_in.b;
+         
+         assert alu_out.r = res report "res";
+
+         assert alu_out.n = res(res'high) report "n";         
+
+         if res = 0 then
+            assert alu_out.z = '1' report "zt";
+         else
+            assert alu_out.z = '0' report "zf";
+         end if;
+
+         if (alu_in.a(alu_in.a'high) = alu_in.b(alu_in.b'high))
+             and (res(res'high) /= alu_in.a(alu_in.a'high))
+         then
+            assert alu_out.v = '1' report "vt";
+         else
+            assert alu_out.v = '0' report "vf";
+         end if;
       end loop;
       
       -- stop the clock
