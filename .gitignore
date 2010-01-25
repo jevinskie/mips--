@@ -7,3 +7,5 @@ transcript
 vsim.wlf
 mapped/
 ._*/
+meminit.hex
+memdump.hex
