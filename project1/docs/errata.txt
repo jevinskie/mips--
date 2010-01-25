@@ -1,0 +1,5 @@
+========
+file: lab3.pdf
+page: 7/8
+errata: 3.2.3.b -> E is really "UUUU" because the if statement never drives E"
+========
