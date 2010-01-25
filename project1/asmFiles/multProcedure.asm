@@ -32,8 +32,8 @@
 	org 0x0800
 mult:
    lw $t0, 0($sp)
+   lw $t1, 4($sp)
    addi $sp, $sp, 4
-   lw $t1, 0($sp)
    # dont inc $sp, we will store here at the end
 
    and $t2, $0, $0
