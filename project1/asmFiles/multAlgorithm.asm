@@ -3,7 +3,7 @@
 
 mult:
    lw $t0, 0($sp)
-   addi $sp, $sp, 4
+   addiu $sp, $sp, 4
    lw $t1, 0($sp)
    # dont inc $sp, we will store here at the end
 

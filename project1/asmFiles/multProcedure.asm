@@ -7,15 +7,15 @@
 	ori		$6, $zero, 17
 	ori		$7, $zero, 6
 
-   addi $sp, $sp, -4
+   addiu $sp, $sp, -4
    sw $3, 0($sp)
-   addi $sp, $sp, -4
+   addiu $sp, $sp, -4
    sw $4, 0($sp)
-   addi $sp, $sp, -4
+   addiu $sp, $sp, -4
    sw $5, 0($sp)
-   addi $sp, $sp, -4
+   addiu $sp, $sp, -4
    sw $6, 0($sp)
-   addi $sp, $sp, -4
+   addiu $sp, $sp, -4
    sw $7, 0($sp)
 
 
@@ -33,7 +33,7 @@
 mult:
    lw $t0, 0($sp)
    lw $t1, 4($sp)
-   addi $sp, $sp, 4
+   addiu $sp, $sp, 4
    # dont inc $sp, we will store here at the end
 
    and $t2, $0, $0
