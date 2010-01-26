@@ -33,7 +33,7 @@ signal sel, sel2: STD_LOGIC;
  update1 : process
   begin
 	  A<=DEAD;
-	  B<=DEAD;
+	  B<=BEEF;
 	  C<=CAB1;
 	  D<=CAB1;
 	  sel<='0';
@@ -50,13 +50,13 @@ signal sel, sel2: STD_LOGIC;
   begin
 	if (sel2='0') then
 	  E<=FEED;
-	elsif (sel2='1') then
+   else
 	  E<=DEAF;
 	end if;	  
   end process;
 
   C<=CAB2 when sel='1' else CAB1;
-  D<=CAB2 when sel='0' else CAB1;
+  D<=CAB1 when sel='0' else CAB1;
     
 end behavioral;
 

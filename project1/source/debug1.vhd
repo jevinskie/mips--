@@ -13,7 +13,7 @@ use ieee.std_logic_1164.all;
 entity syntax_debug1 is
     port(   CLK:     IN STD_LOGIC;
 	    input:   IN STD_LOGIC_VECTOR(2 downto 0);
-	    output:  OUT STD_LOGIC_VECTOR(7 downto 0);
+	    output:  OUT STD_LOGIC_VECTOR(7 downto 0)
 	    );
     end syntax_debug1;
 
@@ -30,23 +30,23 @@ decode: process(CLK)
     if (CLK'Event AND CLK = '1') then
 	case input is
 	    when "000" =>
-		output <= "00000001"
+		output <= "00000001";
 	    when "001" =>
-		output <= "00000010"
+		output <= "00000010";
 	    when "010" =>
-		output <= "00000100"
+		output <= "00000100";
 	    when "011" =>
-		output <= "00001000"
+		output <= "00001000";
 	    when "100" =>
-		output <= "00010000"
+		output <= "00010000";
 	    when "101" =>
-		output <= "00100000"
+		output <= "00100000";
 	    when "110" =>
-		output <= "01000000"
+		output <= "01000000";
 	    when "111" =>
-		output <= "10000000"
+		output <= "10000000";
 	    when others =>
-		output <= zero
+		output <= (others => '0');
 	end case;
     end if;	
   end process;  

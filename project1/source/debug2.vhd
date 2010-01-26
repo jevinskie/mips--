@@ -17,17 +17,18 @@ entity syntax_debug2 is
 	    );
     end syntax_debug2;
 
-architecture behavioral of syntax_debug is
+architecture behavioral of syntax_debug2 is
 
 
 --all signal declarations go here
 
 begin
 
-test_pin: process(CLK)
+test_pin: process(pin_0, pin_1, pin_2, pin_3)
   begin
-    if (pin_3 == "11" AND pin_2 == "01" AND pin_1 == "01" AND pin_0 == "00") then
-		enable = "1";
+    if (pin_3 = "11" AND pin_2 = "01" AND pin_1 = "01" AND pin_0 = "00") then
+		enable <= '1';
+    end if;
   end process;  
 
 
