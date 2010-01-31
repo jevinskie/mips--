@@ -37,6 +37,10 @@ alu_t2m.vhd : common.vhd alu_p.vhd
 
 aluTest.vhd : alu.vhd bintohexDecoder.vhd
 
+pc_r.vhd : common.vhd pc_p.vhd
+pc_p.vhd : common.vhd
+pc_tb.vhd : common.vhd common_tb.vhd pc_p.vhd pc_r.vhd
+
 # end VHDL files (keep this)
 
 # Cache rules (cache labs)
