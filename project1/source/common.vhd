@@ -312,6 +312,9 @@ package common is
       ins : j_type
    ) return std_logic_vector;
 
+
+   subtype dump_address is unsigned(15 downto 0);
+
 end;
 
 package body common is
