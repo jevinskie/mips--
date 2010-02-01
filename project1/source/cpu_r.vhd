@@ -33,6 +33,8 @@ architecture structural of cpu_r is
    signal pc_in   : pc_in_type;
    signal pc_out  : pc_out_type;
 
+   
+
    signal imem_addr     : address;
    signal imem_dat      : word;
    signal imem_dat_slv  : word_slv;
