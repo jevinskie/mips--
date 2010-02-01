@@ -5,6 +5,7 @@ use work.cpu_pkg.all;
 use work.alu_pkg.all;
 use work.regfile_pkg.all;
 use work.pc_pkg.all;
+use work.memwait_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -48,6 +49,7 @@ architecture structural of cpu_r is
 
    signal z : std_logic;
 
+   signal pcwe : std_logic;
    signal halt : std_logic;
 
    signal dump_addr : dump_address;
@@ -65,6 +67,7 @@ begin
    reg_in.wsel <= r_ins.rd;
    -- TODO
    reg_in.wdat <= alu_out.r;
+   reg_in.wen <= '1' when r_ins.op = special_op else '0';
 
 
    alu_b : alu_r port map (
@@ -99,7 +102,7 @@ begin
    pc_in.op <= r_ins.op;
    pc_in.imm <= i_ins.imm;
    pc_in.j_addr <= j_ins.j_addr;
-   pc_in.halt <= halt;
+   pc_in.we <= not halt;
    imem_addr <= pc_out.pc;
   
 
@@ -115,6 +118,7 @@ begin
 
 
    halt <= '1' when r_ins.op = halt_op else '0';
+   q.halt <= halt;
 
 
    -- cpu mappings
