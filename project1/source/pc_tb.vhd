@@ -30,75 +30,75 @@ architecture test of pc_tb is
 
    constant vecs : vector_table := (
       -- assume a reset has set PC to 0
-      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(1*4))),
 
       -- another plain pc increment
-      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(2*4))),
 
       -- branch 13 words ahead
       -- 2 + 13 = 15
-      (d => (op => beq_op, imm => to_hword(12), j_addr => (others => '0'), z => '1', halt => '0'),
+      (d => (op => beq_op, imm => to_hword(12), j_addr => (others => '0'), z => '1', we => '1'),
        q => (pc => to_word(15*4))),
 
       -- don't branch 13 words ahead
       -- 15 + 1 = 16
-      (d => (op => beq_op, imm => to_hword(12), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => beq_op, imm => to_hword(12), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(16*4))),
 
       -- branch 7 words backwards
       -- 16 - 7 = 9
-      (d => (op => beq_op, imm => to_hword(-8), j_addr => (others => '0'), z => '1', halt => '0'),
+      (d => (op => beq_op, imm => to_hword(-8), j_addr => (others => '0'), z => '1', we => '1'),
        q => (pc => to_word(9*4))),
 
       -- bne branch 3 words forwards
       -- 9 + 3 = 12
-      (d => (op => bne_op, imm => to_hword(2), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => bne_op, imm => to_hword(2), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(12*4))),
 
       -- bne dont branch 5 words forwards
       -- 12 + 1 = 13
-      (d => (op => bne_op, imm => to_hword(4), j_addr => (others => '0'), z => '1', halt => '0'),
+      (d => (op => bne_op, imm => to_hword(4), j_addr => (others => '0'), z => '1', we => '1'),
        q => (pc => to_word(13*4))),
 
       -- bne branch 6 words backwards
       -- 13 - 6 = 7
-      (d => (op => bne_op, imm => to_hword(-7), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => bne_op, imm => to_hword(-7), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(7*4))),
 
       -- bne branch to same spot
       -- 7 - 0 = 7
-      (d => (op => bne_op, imm => to_hword(-1), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => bne_op, imm => to_hword(-1), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(7*4))),
 
       -- bne dont branch to same spot
       -- 7 + 1 = 8
-      (d => (op => bne_op, imm => to_hword(-1), j_addr => (others => '0'), z => '1', halt => '0'),
+      (d => (op => bne_op, imm => to_hword(-1), j_addr => (others => '0'), z => '1', we => '1'),
        q => (pc => to_word(8*4))),
 
       -- jump to 243
-      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(243), z => '0', halt => '0'),
+      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(243), z => '0', we => '1'),
        q => (pc => to_word(243*4))),
 
       -- jump with a jal to 1337
-      (d => (op => jal_op, imm => to_hword(0), j_addr => to_j_address(1337), z => '0', halt => '0'),
+      (d => (op => jal_op, imm => to_hword(0), j_addr => to_j_address(1337), z => '0', we => '1'),
        q => (pc => to_word(1337*4))),
 
       -- jump to the end of this 256MB segment
-      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(67108863), z => '0', halt => '0'),
+      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(67108863), z => '0', we => '1'),
        q => (pc => to_word(67108863*4))),
 
       -- run the pc to the next segment
-      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', halt => '0'),
+      (d => (op => special_op, imm => to_hword(0), j_addr => (others => '0'), z => '0', we => '1'),
        q => (pc => to_word(67108864*4))),
 
       -- jump to 0, but really, since we are at the start of the 256MB segment, stand still
-      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(0), z => '0', halt => '0'),
+      (d => (op => j_op, imm => to_hword(0), j_addr => to_j_address(0), z => '0', we => '1'),
        q => (pc => to_word(67108864*4))),
 
       -- halt the processor
-      (d => (op => special_op, imm => to_hword(0), j_addr => to_j_address(0), z => '0', halt => '1'),
+      (d => (op => special_op, imm => to_hword(0), j_addr => to_j_address(0), z => '0', we => '0'),
        q => (pc => to_word(67108864*4)))
     );
 

@@ -9,3 +9,5 @@ mapped/
 ._*/
 meminit.hex
 memdump.hex
+memout.hex
+.*.swo

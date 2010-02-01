@@ -16,7 +16,7 @@ package pc_pkg is
       j_addr   : j_address;
       z        : std_logic;
       op       : op_type;
-      halt     : std_logic;
+      we       : std_logic;
    end record;
 
    type pc_out_type is record

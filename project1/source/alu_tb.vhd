@@ -43,7 +43,7 @@ architecture test of alu_tb is
 
       -- 2 + 2 = 4 (not 5?)
       (d => (a => to_word(2), b => to_word(2), op => add_alu_op),
-       q => (r => to_word(4), n => '0' v => '0', z => '0')),
+       q => (r => to_word(4), n => '0', v => '0', z => '0')),
 
       -- test overflow
       (d => (a => x"7FFFFFFF", b => to_word(1), op => add_alu_op),
@@ -59,11 +59,11 @@ architecture test of alu_tb is
 
       -- -1 - 1 = -2
       (d => (a => to_word(-1), b => to_word(1), op => sub_alu_op),
-       q => (r => to_word(-2), n => '1', v => '0' z => '0')),
+       q => (r => to_word(-2), n => '1', v => '0', z => '0')),
 
       -- 243 - -1337 = 1580
       (d => (a => to_word(243), b => to_word(-1337), op => sub_alu_op),
-       q => (r => to_word(1580), n => '0' v => '0', z => '0')),
+       q => (r => to_word(1580), n => '0', v => '0', z => '0')),
 
       -- test out AND
       (d => (a => x"DEADBEEF", b => x"FFFF0000", op => and_alu_op),

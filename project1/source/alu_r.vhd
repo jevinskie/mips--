@@ -65,8 +65,10 @@ begin
       q.n <= res(res'high);
 
       -- overflow
-      if d.op = add_alu_op or d.op = sub_alu_op then
-         q.v <= calc_overflow(d.a, d.b, res, '1' when d.op = sub_alu_op else '0');
+      if d.op = add_alu_op then
+         q.v <= calc_overflow(d.a, d.b, res, '0');
+      elsif d.op = sub_alu_op then
+         q.v <= calc_overflow(d.a, d.b, res, '1');
       else
          q.v <= '0';
       end if;

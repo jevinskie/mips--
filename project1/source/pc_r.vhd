@@ -39,7 +39,7 @@ begin
 
       -- module algorithm
       
-      if d.halt = '0' then
+      if d.we = '1' then
          v.pc := v.pc + 4;
          
          -- pc is always incremented before the other addressing operations are performed
@@ -52,7 +52,7 @@ begin
             -- invalid but might be due to 'X's and 'U's so don't assert
          end if;
       else
-         -- do nothing, halt PC
+         -- do nothing, PC is halted
       end if;
 
       -- drive the register inputs
