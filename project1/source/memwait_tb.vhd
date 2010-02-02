@@ -55,10 +55,12 @@ begin
       tick(clk, 1);
       nrst <= '1';
 
+      -- no memwait
       memwait_in.op <= special_op;
       tick(clk, 1);
       assert memwait_out.memwait = '0';
 
+      -- two repeated memwaits
       memwait_in.op <= lw_op;
       tick(clk, 1);
       assert memwait_out.memwait = '1';
@@ -69,12 +71,30 @@ begin
       tick(clk, 1);
       assert memwait_out.memwait = '0';
 
+      -- no memwait
       memwait_in.op <= special_op;
       tick(clk, 1);
       assert memwait_out.memwait = '0';
 
+      -- no memwait for sw
       memwait_in.op <= sw_op;
       tick(clk, 1);
+      assert memwait_out.memwait = '0';
+      tick(clk, 1);
+      assert memwait_out.memwait = '0';
+      tick(clk, 1);
+      assert memwait_out.memwait = '0';
+      tick(clk, 1);
+      assert memwait_out.memwait = '0';
+
+      -- reset
+      nrst <= '0';
+      tick(clk, 1);
+      nrst <= '1';
+
+      -- two repeated memwaits
+      memwait_in.op <= lw_op;
+      tick(clk, 1);
       assert memwait_out.memwait = '1';
       tick(clk, 1);
       assert memwait_out.memwait = '0';
@@ -82,6 +102,12 @@ begin
       assert memwait_out.memwait = '1';
       tick(clk, 1);
       assert memwait_out.memwait = '0';
+
+      -- no memwait
+      memwait_in.op <= special_op;
+      tick(clk, 1);
+      assert memwait_out.memwait = '0';
+
 
       -- stop the clock
       stop <= '1';

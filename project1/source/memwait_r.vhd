@@ -41,13 +41,13 @@ begin
       -- module algorithm
       case v.state is
          when not_waiting =>
-            if d.op = lw_op or d.op = sw_op then
+            if d.op = lw_op then
                v.state := waiting_sawmem;
             end if;
          when waiting_sawmem =>
             v.state := not_waiting_sawmem;
          when not_waiting_sawmem =>
-            if d.op = lw_op or d.op = sw_op then
+            if d.op = lw_op then
                v.state := waiting_sawmem;
             else
                v.state := not_waiting;

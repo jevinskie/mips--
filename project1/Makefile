@@ -42,7 +42,7 @@ pc_p.vhd : common.vhd
 pc_tb.vhd : common.vhd common_tb.vhd pc_p.vhd pc_r.vhd
 
 cpu.vhd : common.vhd cpu_p.vhd cpu_r.vhd
-cpu_r.vhd : common.vhd cpu_p.vhd pc_r.vhd alu_r.vhd regfile_r.vhd rami.vhd ramd.vhd
+cpu_r.vhd : common.vhd cpu_p.vhd pc_r.vhd alu_r.vhd regfile_r.vhd rami.vhd ramd.vhd memwait_r.vhd
 cpu_p.vhd : common.vhd
 tb_cpu.vhd : cpu.vhd
 
