@@ -63,6 +63,7 @@ architecture structural of cpu_r is
 
 begin
 
+
    regfile_b : regfile_r port map (
       clk => clk, nrst => nrst,
       d => reg_in, q => reg_out
@@ -70,11 +71,33 @@ begin
 
    reg_in.rsel1 <= r_ins.rs;
    reg_in.rsel2 <= r_ins.rt;
-   -- TODO
-   reg_in.wsel <= r_ins.rd;
-   -- TODO
-   reg_in.wdat <= alu_out.r;
-   reg_in.wen <= ctrl_out.reg_write and not memwait;
+   reg_in.wen <= ctrl_out.reg_write and not memwait and not halt;
+
+   reg_write_sel : process(ctrl_out.reg_dst, r_ins.rt, r_ins.rd, r_ins.op)
+      variable i : reg_index;
+   begin
+      if r_ins.op = jal_op then
+         i := 31;
+      elsif ctrl_out.reg_dst = '1' then
+         i := r_ins.rd;
+      else
+         i := r_ins.rt;
+      end if;
+
+      reg_in.wsel <= i;
+   end process;
+
+   reg_write_mux : process(ctrl_out.reg_src, pc_out.pc, dmem_rdat, alu_out.r)
+      variable r : word;
+   begin
+      case ctrl_out.reg_src is
+         when mem_reg_src  => r := dmem_rdat;
+         when pc_reg_src   => r := pc_out.pc + 4;
+         when alu_reg_src  => r := alu_out.r;
+      end case;
+
+      reg_in.wdat <= r;
+   end process;
 
 
    alu_b : alu_r port map (
@@ -84,7 +107,7 @@ begin
    z <= alu_out.z;
    alu_in.a <= reg_out.rdat1;
    
-   alu_mux : process (ctrl_out.alu_src)
+   alu_mux : process (ctrl_out.alu_src, reg_out.rdat2, i_ins.imm, r_ins.sa)
       variable r : word;
    begin
       case ctrl_out.alu_src is

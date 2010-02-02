@@ -26,17 +26,17 @@ begin
    begin
       -- module algorithm
 
-      q.reg_dst      <= '0';
-      q.jump         <= '0';
-      q.branch       <= '0';
-      q.mem_read     <= '0';
-      -- ALERT not 0
-      q.mem_to_reg   <= '1';
-      q.mem_write    <= '0';
+      q.reg_dst   <= '0';
+      q.jump      <= '0';
+      q.branch    <= '0';
+      q.mem_read  <= '0';
       -- ALERT
-      q.alu_src      <= imm_alu_src;
+      q.reg_src   <= alu_reg_src;
+      q.mem_write <= '0';
+      -- ALERT
+      q.alu_src   <= imm_alu_src;
       -- ALERT not 0
-      q.reg_write    <= '1';
+      q.reg_write <= '1';
 
       case d.r_ins.op is
          -- R-type instructions
@@ -77,15 +77,16 @@ begin
          when addiu_op =>
 
          when andi_op =>
-            q.alu_src      <= immu_alu_src;
+            q.alu_src   <= immu_alu_src;
 
          when lui_op =>
-            q.alu_src      <= lui_alu_src;
+            q.alu_src   <= lui_alu_src;
 
          when lw_op =>
+            q.reg_src   <= mem_reg_src;
 
          when ori_op =>
-            q.alu_src      <= immu_alu_src;
+            q.alu_src   <= immu_alu_src;
 
          when slti_op =>
 
@@ -96,18 +97,19 @@ begin
          when ll_op =>
 
          when xori_op =>
-            q.alu_src      <= immu_alu_src;
+            q.alu_src   <= immu_alu_src;
 
          -- J-type instructions
          when j_op =>
-            q.jump         <= '1';
+            q.jump      <= '1';
          
          when jal_op =>
-            q.branch       <= '1';
+            q.branch    <= '1';
+            q.reg_src   <= pc_reg_src;
 
          when halt_op =>
-            q.reg_write    <= '0';
-            q.mem_write    <= '0';
+            q.reg_write <= '0';
+            q.mem_write <= '0';
 
          when others =>
             -- nothing

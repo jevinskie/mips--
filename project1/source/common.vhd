@@ -321,6 +321,10 @@ package common is
       immu_alu_src, lui_alu_src
    );
 
+   type reg_src_type is (
+      mem_reg_src, pc_reg_src, alu_reg_src
+   );
+
 end;
 
 package body common is

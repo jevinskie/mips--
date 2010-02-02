@@ -22,7 +22,7 @@ package ctrl_pkg is
       jump        : std_logic;
       branch      : std_logic;
       mem_read    : std_logic;
-      mem_to_reg  : std_logic;
+      reg_src     : reg_src_type;
       mem_write   : std_logic;
       alu_src     : alu_src_type;
       reg_write   : std_logic;
