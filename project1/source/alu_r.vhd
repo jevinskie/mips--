@@ -42,6 +42,25 @@ begin
             res := d.a or d.b;
          when xor_alu_op =>
             res := d.a xor d.b;
+         when slt_alu_op =>
+            -- rs < rt ? 1 : 0
+            -- a < b ? 1 : 0
+            -- subtract (a - b) and if negative set 1 else 0
+            if signed(d.a) < signed(d.b) then
+               res := to_word(1);
+            else
+               res := to_word(0);
+            end if;
+         when sltu_alu_op =>
+            -- rs < rt ? 1 : 0
+            -- a < b ? 1 : 0
+            -- subtract (a - b) and if negative set 1 else 0
+            -- then if sign(a) != sign(b), flip the result
+            if d.a < d.b then
+               res := to_word(1);
+            else
+               res := to_word(0);
+            end if;
          when others =>
             res := (others => '0');
             assert false;

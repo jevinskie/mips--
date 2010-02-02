@@ -87,8 +87,31 @@ architecture test of alu_tb is
 
       -- test out SRL
       (d => (a => x"00000010", b => x"00000004", op => srl_alu_op),
-       q => (r => x"00000001", n => '0', v => '0', z => '0'))
- 
+       q => (r => x"00000001", n => '0', v => '0', z => '0')),
+
+      -- 5 < 6 (should be 1)
+      (d => (a => to_word(5), b => to_word(6), op => slt_alu_op),
+       q => (r => to_word(1), n => '0', v => '0', z => '0')),
+
+      -- same as above but with sltu (should be 1)
+      (d => (a => to_word(5), b => to_word(6), op => sltu_alu_op),
+       q => (r => to_word(1), n => '0', v => '0', z => '0')),
+
+      -- INT_MIN < INT_MAX (should be 1)
+      (d => (a => x"80000000", b => x"7FFFFFFF", op => slt_alu_op),
+       q => (r => to_word(1), n => '0', v => '0', z => '0')),
+
+      -- unsigned(INT_MIN) < unsigned(INT_MAX) (should be 0)
+      (d => (a => x"80000000", b => x"7FFFFFFF", op => sltu_alu_op),
+       q => (r => to_word(0), n => '0', v => '0', z => '1')),
+      
+      -- 1337 < 243 (should be 0) 
+      (d => (a => to_word(1337), b => to_word(243), op => slt_alu_op),
+       q => (r => to_word(0), n => '0', v => '0', z => '1')),
+
+      -- same as above but with sltu (should be 0)
+      (d => (a => to_word(1337), b => to_word(243), op => sltu_alu_op),
+       q => (r => to_word(0), n => '0', v => '0', z => '1'))
     );
 
 

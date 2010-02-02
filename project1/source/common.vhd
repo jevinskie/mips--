@@ -65,8 +65,11 @@ package common is
    ) return j_address;
 
 
-   type alu_op_type is (sll_alu_op, srl_alu_op, add_alu_op, sub_alu_op,
-                        and_alu_op, nor_alu_op, or_alu_op, xor_alu_op);
+   type alu_op_type is (
+      sll_alu_op, srl_alu_op, add_alu_op, sub_alu_op,
+      and_alu_op, nor_alu_op, or_alu_op, xor_alu_op,
+      slt_alu_op, sltu_alu_op
+   );
 
 
    function binlog (
