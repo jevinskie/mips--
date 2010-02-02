@@ -17,25 +17,13 @@ VPATH= $(WORKDIR)
 
 common_tb.vhd : common.vhd
 
+regfile_p.vhd : common.vhd
 regfile_r.vhd : common.vhd regfile_p.vhd
 regfile_tb.vhd : common.vhd common_tb.vhd regfile_p.vhd regfile_r.vhd
-regfile_t2m.vhd : common.vhd regfile_p.vhd
-registerFile_tb.vhd : common.vhd registerFile.vhd
-registerFile.vhd : common.vhd regfile_p.vhd regfile_r.vhd
-regTest.vhd : registerFile.vhd
 
-shifter_r.vhd : common.vhd shifter_p.vhd
-shifter_tb.vhd : common.vhd common_tb.vhd shifter_p.vhd shifter_r.vhd
-
-addsub_r.vhd : common.vhd addsub_p.vhd
-addsub_tb.vhd : common.vhd common_tb.vhd addsub_p.vhd addsub_r.vhd
-
-alu_r.vhd : common.vhd alu_p.vhd addsub_p.vhd addsub_r.vhd shifter_p.vhd shifter_r.vhd
-alu.vhd : common.vhd alu_p.vhd alu_r.vhd
+alu_p.vhd : common.vhd
+alu_r.vhd : common.vhd alu_p.vhd
 alu_tb.vhd : common.vhd common_tb.vhd alu_p.vhd alu_r.vhd
-alu_t2m.vhd : common.vhd alu_p.vhd
-
-aluTest.vhd : alu.vhd bintohexDecoder.vhd
 
 pc_r.vhd : common.vhd pc_p.vhd
 pc_p.vhd : common.vhd
