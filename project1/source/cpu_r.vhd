@@ -6,6 +6,7 @@ use work.alu_pkg.all;
 use work.regfile_pkg.all;
 use work.pc_pkg.all;
 use work.memwait_pkg.all;
+use work.ctrl_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -33,7 +34,11 @@ architecture structural of cpu_r is
    signal pc_in   : pc_in_type;
    signal pc_out  : pc_out_type;
 
-   
+   signal memwait_in    : memwait_in_type;
+   signal memwait_out   : memwait_out_type;   
+
+   signal ctrl_in    : ctrl_in_type;
+   signal ctrl_out   : ctrl_out_type;
 
    signal imem_addr     : address;
    signal imem_dat      : word;
@@ -45,14 +50,14 @@ architecture structural of cpu_r is
    signal dmem_wdat     : word;
    signal dmem_wen      : std_logic;
 
-   signal r_ins   : r_type;
-   signal j_ins   : j_type;
-   signal i_ins   : i_type;
+   signal r_ins : r_type;
+   signal j_ins : j_type;
+   signal i_ins : i_type;
 
    signal z : std_logic;
 
-   signal pcwe : std_logic;
-   signal halt : std_logic;
+   signal halt    : std_logic;
+   signal memwait : std_logic;
 
    signal dump_addr : dump_address;
 
@@ -69,7 +74,7 @@ begin
    reg_in.wsel <= r_ins.rd;
    -- TODO
    reg_in.wdat <= alu_out.r;
-   reg_in.wen <= '1' when r_ins.op = special_op else '0';
+   reg_in.wen <= ctrl_out.reg_write and not memwait;
 
 
    alu_b : alu_r port map (
@@ -78,9 +83,29 @@ begin
 
    z <= alu_out.z;
    alu_in.a <= reg_out.rdat1;
-   -- TODO
-   alu_in.b <= reg_out.rdat2;
+   
+   alu_mux : process (ctrl_out.alu_src)
+      variable r : word;
+   begin
+      case ctrl_out.alu_src is
+         when reg_alu_src  => r := reg_out.rdat2;
+         when imm_alu_src  => r := unsigned(resize(signed(i_ins.imm), r'length));
+         when immu_alu_src => r := resize(i_ins.imm, r'length);
+         when sa_alu_src   => r := to_unsigned(r_ins.sa, r'length);
+         when lui_alu_src  => r := zero_fill_right(i_ins.imm, r'length);
+      end case;
 
+      alu_in.b <= r;
+   end process;
+
+
+   ctrl_b : ctrl_r port map (
+      d => ctrl_in, q => ctrl_out
+   );
+
+   ctrl_in.r_ins <= r_ins;
+   ctrl_in.i_ins <= i_ins;
+   ctrl_in.j_ins <= j_ins;
 
    imem_b : entity work.rami port map (
       clock => clk,
@@ -100,13 +125,23 @@ begin
       d => pc_in, q => pc_out
    );
 
-   pc_in.z <= z;
-   pc_in.op <= r_ins.op;
-   pc_in.imm <= i_ins.imm;
-   pc_in.j_addr <= j_ins.j_addr;
-   pc_in.we <= not halt;
-   imem_addr <= pc_out.pc;
-  
+   pc_in.z        <= z;
+   pc_in.op       <= r_ins.op;
+   pc_in.imm      <= i_ins.imm;
+   pc_in.j_addr   <= j_ins.j_addr;
+   pc_in.r_addr   <= reg_out.rdat1;
+   pc_in.we       <= not halt and not memwait;
+
+   imem_addr      <= pc_out.pc;
+ 
+
+   memwait_b : memwait_r port map (
+      clk => clk, nrst => nrst,
+      d => memwait_in, q => memwait_out
+   );
+
+   memwait_in.op <= r_ins.op;
+   memwait <= memwait_out.memwait;
 
    dmem_b : entity work.ramd port map (
       clock => clk,

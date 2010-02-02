@@ -1,4 +1,4 @@
--- pc testbench
+-- control testbench
 
 use work.common.all;
 use work.common_tb.all;

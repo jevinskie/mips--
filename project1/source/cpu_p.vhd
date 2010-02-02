@@ -10,7 +10,7 @@ use ieee.numeric_std.all;
 
 -- component declaration package
 package cpu_pkg is
-   
+
    type cpu_in_type is record
       dump_addr   : dump_address;
    end record;

@@ -315,6 +315,12 @@ package common is
 
    subtype dump_address is unsigned(15 downto 0);
 
+
+   type alu_src_type is (
+      reg_alu_src, imm_alu_src, sa_alu_src,
+      immu_alu_src, lui_alu_src
+   );
+
 end;
 
 package body common is

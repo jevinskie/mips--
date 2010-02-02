@@ -24,7 +24,7 @@ package ctrl_pkg is
       mem_read    : std_logic;
       mem_to_reg  : std_logic;
       mem_write   : std_logic;
-      alu_src     : std_logic;
+      alu_src     : alu_src_type;
       reg_write   : std_logic;
    end record;
 
