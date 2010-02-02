@@ -37,6 +37,8 @@ begin
       q.alu_src   <= imm_alu_src;
       -- ALERT not 0
       q.reg_write <= '1';
+      -- ALERT
+      q.alu_op    <= sll_alu_op;
 
       case d.r_ins.op is
          -- R-type instructions
@@ -45,29 +47,39 @@ begin
             q.alu_src      <= reg_alu_src;
             case d.r_ins.func is
                when addu_s_func =>
-               
+                  q.alu_op    <= add_alu_op;
+
                when and_s_func =>
+                  q.alu_op    <= and_alu_op;
 
                when jr_s_func =>
                   q.reg_write <= '0';
 
                when nor_s_func =>
+                  q.alu_op    <= nor_alu_op;
 
                when or_s_func =>
+                  q.alu_op    <= or_alu_op;
 
                when slt_s_func =>
+                  q.alu_op    <= slt_alu_op;
 
                when sltu_s_func =>
+                  q.alu_op    <= sltu_alu_op;
 
                when sll_s_func =>
-                  q.alu_src <= sa_alu_src;
+                  q.alu_op    <= sll_alu_op;
+                  q.alu_src   <= sa_alu_src;
 
                when srl_s_func =>
-                  q.alu_src <= sa_alu_src;
+                  q.alu_op    <= srl_alu_op;
+                  q.alu_src   <= sa_alu_src;
 
                when subu_s_func =>
+                  q.alu_op    <= sub_alu_op;
 
                when xor_s_func =>
+                  q.alu_op    <= xor_alu_op;
 
                when others =>
                   -- nothing
@@ -75,28 +87,45 @@ begin
 
          -- I-type instructions
          when addiu_op =>
+            q.alu_op    <= add_alu_op;
 
          when andi_op =>
+            q.alu_op    <= and_alu_op;
             q.alu_src   <= immu_alu_src;
 
+         when beq_op =>
+            q.alu_op    <= sub_alu_op;
+
+         when bne_op =>
+            q.alu_op    <= sub_alu_op;
+
          when lui_op =>
+            -- since rs is defined by the ISA as $0 for LUI
+            -- we can OR $0 with the shifted lui alu source to get the result
+            q.alu_op    <= or_alu_op;
             q.alu_src   <= lui_alu_src;
 
          when lw_op =>
+            q.alu_op    <= add_alu_op;
             q.reg_src   <= mem_reg_src;
 
          when ori_op =>
+            q.alu_op    <= or_alu_op;
             q.alu_src   <= immu_alu_src;
 
          when slti_op =>
+            q.alu_op    <= slt_alu_op;
 
          when sltiu_op =>
+            q.alu_op    <= sltu_alu_op;
 
          when sw_op =>
+            q.alu_op    <= add_alu_op;
 
          when ll_op =>
 
          when xori_op =>
+            q.alu_op    <= xor_alu_op;
             q.alu_src   <= immu_alu_src;
 
          -- J-type instructions

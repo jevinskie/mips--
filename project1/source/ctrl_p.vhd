@@ -26,6 +26,7 @@ package ctrl_pkg is
       mem_write   : std_logic;
       alu_src     : alu_src_type;
       reg_write   : std_logic;
+      alu_op      : alu_op_type;
    end record;
 
    component ctrl_r

@@ -106,6 +106,7 @@ begin
 
    z <= alu_out.z;
    alu_in.a <= reg_out.rdat1;
+   alu_in.op <= ctrl_out.alu_op;
    
    alu_mux : process (ctrl_out.alu_src, reg_out.rdat2, i_ins.imm, r_ins.sa)
       variable r : word;
@@ -175,6 +176,7 @@ begin
    dmem_addr <= alu_out.r when halt = '0' else resize(d.dump_addr, address'length);
    dmem_rdat <= unsigned(dmem_rdat_slv);
    dmem_wdat <= reg_out.rdat2;
+   dmem_wen  <= ctrl_out.mem_write;
 
 
    halt <= '1' when r_ins.op = halt_op else '0';
