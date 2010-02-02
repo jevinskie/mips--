@@ -151,6 +151,7 @@ begin
 
    pc_in.z        <= z;
    pc_in.op       <= r_ins.op;
+   pc_in.func     <= r_ins.func;
    pc_in.imm      <= i_ins.imm;
    pc_in.j_addr   <= j_ins.j_addr;
    pc_in.r_addr   <= reg_out.rdat1;
