@@ -27,7 +27,6 @@ begin
       -- module algorithm
 
       q.reg_dst   <= '0';
-      q.mem_read  <= '0';
       -- ALERT
       q.reg_src   <= alu_reg_src;
       q.mem_write <= '0';
