@@ -19,8 +19,6 @@ package ctrl_pkg is
 
    type ctrl_out_type is record
       reg_dst     : std_logic;
-      jump        : std_logic;
-      branch      : std_logic;
       mem_read    : std_logic;
       reg_src     : reg_src_type;
       mem_write   : std_logic;

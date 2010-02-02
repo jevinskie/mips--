@@ -27,8 +27,6 @@ begin
       -- module algorithm
 
       q.reg_dst   <= '0';
-      q.jump      <= '0';
-      q.branch    <= '0';
       q.mem_read  <= '0';
       -- ALERT
       q.reg_src   <= alu_reg_src;
@@ -94,10 +92,14 @@ begin
             q.alu_src   <= immu_alu_src;
 
          when beq_op =>
+            q.alu_src   <= reg_alu_src;
             q.alu_op    <= sub_alu_op;
+            q.reg_write <= '0';
 
          when bne_op =>
+            q.alu_src   <= reg_alu_src;
             q.alu_op    <= sub_alu_op;
+            q.reg_write <= '0';
 
          when lui_op =>
             -- since rs is defined by the ISA as $0 for LUI
@@ -121,6 +123,8 @@ begin
 
          when sw_op =>
             q.alu_op    <= add_alu_op;
+            q.reg_write <= '0';
+            q.mem_write <= '1';
 
          when ll_op =>
 
@@ -130,10 +134,9 @@ begin
 
          -- J-type instructions
          when j_op =>
-            q.jump      <= '1';
+            q.reg_write <= '0';
          
          when jal_op =>
-            q.branch    <= '1';
             q.reg_src   <= pc_reg_src;
 
          when halt_op =>
