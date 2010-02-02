@@ -14,8 +14,10 @@ package pc_pkg is
    type pc_in_type is record
       imm      : immediate;
       j_addr   : j_address;
+      r_addr   : address;
       z        : std_logic;
       op       : op_type;
+      func     : s_func_type;
       we       : std_logic;
    end record;
 

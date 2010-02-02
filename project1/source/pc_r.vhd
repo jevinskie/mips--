@@ -46,6 +46,8 @@ begin
 
          if d.op = j_op or d.op = jal_op then
             v.pc(27 downto 0) := d.j_addr & "00";
+         elsif d.op = special_op and d.func = jr_s_func then
+            v.pc := d.r_addr;
          elsif (d.op = beq_op and d.z = '1') or (d.op = bne_op and d.z = '0') then
             v.pc := unsigned(signed(v.pc) + signed(d.imm & "00"));
          else
