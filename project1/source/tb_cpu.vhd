@@ -59,17 +59,19 @@ function vec2int (slv: std_logic_vector) return integer is
 
 
 	-- signals here
-  signal clk, nReset, halt												: std_logic;
+  signal clk : std_logic := '1';
+  signal nReset, halt												: std_logic;
 	signal memout, imemData, dmemDataWrite					:	std_logic_vector(31 downto 0);
 	signal imemAddr, dmemAddr												:	std_logic_vector(31 downto 0);
 	-- supply address that we want to dump
 	signal address																	:	std_logic_vector(15 downto 0);
+   signal stop : std_logic := '0';
 
 begin
 
   DUT: cpu port map(
 			-- begin ports needed for synthesis testing
-			---altera_reserved_tms	=>	'0',
+			--altera_reserved_tms	=>	'0',
 			--altera_reserved_tck	=>	'0',
 			--altera_reserved_tdi	=>	'0',
 			-- end ports needed for synthesis testing
@@ -85,13 +87,7 @@ begin
 
 
 	-- generate clock signal
-  clkgen: process
-    variable clk_tmp : std_logic := '0';
-  begin
-    clk_tmp := not clk_tmp;
-    clk <= clk_tmp;
-    wait for Period/2;
-  end process;
+  clk <= not clk and not stop after Period/2;
 
 	-- start computer
   testingprocess : process
@@ -100,7 +96,8 @@ begin
     wait for 2 ns;
     nReset <= '1';
     wait on halt;
-    wait on halt;  
+    wait on halt;
+    wait; 
   end process;
 
 	-- print cycles for execution
@@ -206,6 +203,7 @@ begin
 				-- so we don't keep looping
       	write(my_line, string'("dumped memory"));
       	writeline(OUTPUT, my_line);
+            stop <= '1';
 				wait;
 			end if; -- end if halt
 		end process;
