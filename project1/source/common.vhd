@@ -66,29 +66,7 @@ package common is
 
 
    type alu_op_type is (sll_alu_op, srl_alu_op, add_alu_op, sub_alu_op,
-                        and_alu_op, nor_alu_op, or_alu_op, xor_alu_op, unimp_alu_op);
-
-   type alu_op_enc_lut_array is array(alu_op_type) of std_logic_vector(2 downto 0);
-
-   constant alu_op_enc_lut : alu_op_enc_lut_array := (
-      sll_alu_op     => "000",
-      srl_alu_op     => "001",
-      add_alu_op     => "010",
-      sub_alu_op     => "011",
-      and_alu_op     => "100",
-      nor_alu_op     => "101",
-      or_alu_op      => "110",
-      xor_alu_op     => "111",
-      unimp_alu_op   => "UUU"
-   );
-
-   function to_slv (
-      alu_op : alu_op_type
-   ) return std_logic_vector;
-
-   function to_alu_op (
-      alu_op_slv : std_logic_vector
-   ) return alu_op_type;
+                        and_alu_op, nor_alu_op, or_alu_op, xor_alu_op);
 
 
    function binlog (
@@ -417,27 +395,6 @@ package body common is
       else
          return to_unsigned(i_int, j_address'length);
       end if;
-   end;
-
-
-   function to_slv (
-      alu_op : alu_op_type
-   ) return std_logic_vector is
-   begin
-      return alu_op_enc_lut(alu_op);
-   end;
-
-   function to_alu_op (
-      alu_op_slv : std_logic_vector
-   ) return alu_op_type is
-   begin
-      for op in alu_op_type loop
-         if alu_op_slv = alu_op_enc_lut(op) then
-            return op;
-         end if;
-      end loop;
-
-      return unimp_alu_op;
    end;
 
 
