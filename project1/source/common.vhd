@@ -229,7 +229,7 @@ package common is
       or_s_func        => "100101",
       xor_s_func       => "100110",
       nor_s_func       => "100111",
-      slt_s_func       => "110010",
+      slt_s_func       => "101010",
       sltu_s_func      => "101011",
       tge_s_func       => "110000",
       tgeu_s_func      => "110001",
