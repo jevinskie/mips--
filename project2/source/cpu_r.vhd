@@ -98,10 +98,11 @@ begin
 
    pc_in <= pc + 4;
 
-   process(mem_state, r_ins.op)
+   process(mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
    begin
-      if r_ins.op /= halt_op then
-         if mem_state = free_mem_state or mem_state = ready_mem_state then
+      if r_ins.op /= halt_op and hazard_out.stall = '0' then
+         if (mem_state = free_mem_state or mem_state = ready_mem_state)
+            and (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
             pc_wen <= '1';
          else
             pc_wen <= '0';
@@ -182,14 +183,14 @@ begin
    id_ex_reg_in.sa         <= r_ins.sa;
    id_ex_reg_in.imm        <= i_ins.imm;
 
-   process(hazard_out.stall, ctrl_out, r_ins)
+   process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl)
    begin
-      if hazard_out.stall = '1' then
+      if hazard_out.stall = '1' or
+         (ex_mem_reg.mem_ctrl.mem_read = '1' or ex_mem_reg.mem_ctrl.mem_write = '1') then
          id_ex_reg_in.reg_dst <= 0;
          id_ex_reg_in.mem_ctrl.mem_read <= '0';
          id_ex_reg_in.mem_ctrl.mem_write <= '0';
          id_ex_reg_in.wb_ctrl.reg_write <= '0';
-         id_ex_reg_in.halt <= '0';
       else
          if ctrl_out.reg_dst = '1' then
             id_ex_reg_in.reg_dst <= r_ins.rd;
@@ -200,12 +201,14 @@ begin
          id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
          id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
          id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
-         if r_ins.op = halt_op then
-            id_ex_reg_in.halt    <= '1';
-         else
-            id_ex_reg_in.halt    <= '0';
-         end if;
       end if;
+
+      if r_ins.op = halt_op then
+         id_ex_reg_in.halt    <= '1';
+      else
+         id_ex_reg_in.halt    <= '0';
+      end if;
+
    end process;
 
 
@@ -283,7 +286,7 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, mem_state)
+   pipe_reg_proc : process(nrst, clk, mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
    begin
       if nrst = '0' then
          if_id_reg.ins <= (others => '0');
@@ -303,7 +306,10 @@ begin
          mem_wb_reg.halt <= '0';
       elsif rising_edge(clk) then
          if mem_state = free_mem_state or mem_state = ready_mem_state then
-            if_id_reg <= if_id_reg_in;
+            if r_ins.op /= halt_op and hazard_out.stall = '0' and
+               (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
+               if_id_reg <= if_id_reg_in;
+            end if;
             id_ex_reg <= id_ex_reg_in;
             ex_mem_reg <= ex_mem_reg_in;
             mem_wb_reg <= mem_wb_reg_in;
@@ -350,9 +356,9 @@ begin
    mem_rdat <= unsigned(mem_rdat_slv);
    mem_wdat <= ex_mem_reg.rdat2;
    mem_state <= to_mem_state(mem_state_slv);
-   mem_halt <= '0';
+   mem_halt <= mem_wb_reg.halt;
 
-   process(pc, ex_mem_reg, d.dump_addr, mem_wb_reg.halt)
+   process(pc, ex_mem_reg, d.dump_addr, mem_wb_reg.halt, ex_mem_reg.mem_ctrl)
    begin
       if mem_wb_reg.halt = '0' then
          if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' then
