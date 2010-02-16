@@ -26,8 +26,11 @@ alu_p.vhd : common.vhd
 alu_r.vhd : common.vhd alu_p.vhd
 alu_tb.vhd : common.vhd common_tb.vhd alu_p.vhd alu_r.vhd
 
+hazard_p.vhd : common.vhd
+hazard_r.vhd : common.vhd hazard_p.vhd
+
 cpu.vhd : common.vhd cpu_p.vhd cpu_r.vhd
-cpu_r.vhd : common.vhd common_pipe.vhd cpu_p.vhd alu_r.vhd regfile_r.vhd vram.vhd ctrl_r.vhd
+cpu_r.vhd : common.vhd common_pipe.vhd cpu_p.vhd alu_r.vhd regfile_r.vhd vram.vhd ctrl_r.vhd hazard_r.vhd
 cpu_p.vhd : common.vhd
 tb_cpu.vhd : cpu.vhd
 cpuTest.vhd : cpu.vhd bintohexDecoder.vhd

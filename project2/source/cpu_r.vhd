@@ -6,6 +6,7 @@ use work.cpu_pkg.all;
 use work.alu_pkg.all;
 use work.regfile_pkg.all;
 use work.ctrl_pkg.all;
+use work.hazard_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -48,8 +49,6 @@ architecture structural of cpu_r is
 
    signal z : std_logic;
 
-   signal dump_addr : dump_address;
-
    -- pipeline register signals
    signal if_id_reg, if_id_reg_in   : if_id_reg_type;
    signal id_ex_reg, id_ex_reg_in   : id_ex_reg_type;
@@ -67,11 +66,13 @@ architecture structural of cpu_r is
    signal mem_state_slv : std_logic_vector(1 downto 0);
    signal mem_state     : mem_state_type;
 
-
    -- pc signals
    signal pc, pc_in  : address;
    signal pc_wen     : std_logic;
 
+   -- hazard signals
+   signal hazard_in  : hazard_in_type;
+   signal hazard_out : hazard_out_type;
 
 begin
 
@@ -95,15 +96,22 @@ begin
       end if;
    end process;
 
-   -- pc_wen logic
-   pc_wen_proc : process(ex_mem_reg.mem_ctrl.mem_read)
+   pc_in <= pc + 4;
+
+   process(mem_state, r_ins.op)
    begin
-      if ex_mem_reg.mem_ctrl.mem_read = '1' then
+      if r_ins.op /= halt_op then
+         if mem_state = free_mem_state or mem_state = ready_mem_state then
+            pc_wen <= '1';
+         else
+            pc_wen <= '0';
+         end if;
+      else
          pc_wen <= '0';
       end if;
    end process;
 
-
+   
    -- instruction memory (from vmem)
    imem_addr <= pc;
    imem_dat <= mem_rdat;
@@ -244,7 +252,7 @@ begin
 
 
    -- data memory (from vmem)
-   dmem_addr <= ex_mem_reg.alu_res when ex_mem_reg.halt = '0' else resize(d.dump_addr, address'length);
+   dmem_addr <= ex_mem_reg.alu_res;
    dmem_rdat <= mem_rdat;
    dmem_wdat <= ex_mem_reg.rdat2;
    dmem_wen  <= ex_mem_reg.mem_ctrl.mem_write;
@@ -258,6 +266,56 @@ begin
    mem_wb_reg_in.halt      <= ex_mem_reg.halt;
 
 
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------      PIPE REGS      ---------
+   ---------------------------------------
+   ---------------------------------------
+
+
+   pipe_reg_proc : process(nrst, clk, ex_mem_reg.mem_ctrl, r_ins.op)
+   begin
+      if nrst = '0' then
+         id_ex_reg.mem_ctrl.mem_read <= '0';
+         id_ex_reg.mem_ctrl.mem_write <= '0';
+         id_ex_reg.wb_ctrl.reg_write <= '0';
+         id_ex_reg.halt <= '0';
+         ex_mem_reg.mem_ctrl.mem_read <= '0';
+         ex_mem_reg.mem_ctrl.mem_write <= '0';
+         ex_mem_reg.wb_ctrl.reg_write <= '0';
+         ex_mem_reg.halt <= '0';
+         mem_wb_reg.wb_ctrl.reg_write <= '0';
+         mem_wb_reg.halt <= '0';
+      elsif rising_edge(clk) then
+         if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' and r_ins.op /= halt_op then
+            if_id_reg <= if_id_reg_in;
+         end if;
+         id_ex_reg <= id_ex_reg_in;
+         ex_mem_reg <= ex_mem_reg_in;
+         mem_wb_reg <= mem_wb_reg_in;
+      end if;
+   end process;
+
+
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------    HAZARD DETECT    ---------
+   ---------------------------------------
+   ---------------------------------------
+
+
+   hazard_b : hazard_r port map (
+      d => hazard_in, q => hazard_out
+   );
+
+   hazard_in.id_dst <= r_ins.rd;
+   hazard_in.ex_dst <= id_ex_reg.reg_dst;
+   hazard_in.mem_dst <= ex_mem_reg.reg_dst;
+   hazard_in.wb_dst <= mem_wb_reg.reg_dst;
 
 
    ---------------------------------------
@@ -277,7 +335,42 @@ begin
    );
 
    mem_rdat <= unsigned(mem_rdat_slv);
+   mem_wdat <= ex_mem_reg.rdat2;
    mem_state <= to_mem_state(mem_state_slv);
+   mem_halt <= '0';
+
+   process(pc, ex_mem_reg, d.dump_addr, mem_wb_reg.halt)
+   begin
+      if mem_wb_reg.halt = '0' then
+         if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' then
+            mem_addr <= pc;
+         else
+            mem_addr <= ex_mem_reg.alu_res;
+         end if;
+      else
+         mem_addr <= resize(d.dump_addr, address'length);
+      end if;
+   end process;
+
+   mem_ren <= '1' when mem_wb_reg.halt = '1' else not ex_mem_reg.mem_ctrl.mem_write;
+   mem_wen <= ex_mem_reg.mem_ctrl.mem_write;
+
+
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------      CPU OUTPUTS    ---------
+   ---------------------------------------
+   ---------------------------------------
+
+   q.halt <= mem_wb_reg.halt;
+   q.dmem_rdat <= mem_rdat;
+   q.dmem_wdat <= mem_wdat;
+   q.imem_dat <= mem_rdat;
+   q.dmem_addr <= mem_addr;
+   q.imem_addr <= mem_addr;
+
 
 end;
 

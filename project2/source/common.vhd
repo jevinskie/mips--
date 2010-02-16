@@ -331,6 +331,7 @@ package common is
       mem_state_slv : std_logic_vector
    ) return mem_state_type;
 
+
 end;
 
 package body common is

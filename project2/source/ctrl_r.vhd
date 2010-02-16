@@ -109,6 +109,7 @@ begin
          when lw_op =>
             q.ex_ctrl.alu_op     <= add_alu_op;
             q.wb_ctrl.reg_src    <= mem_reg_src;
+            q.mem_ctrl.mem_read  <= '1';
 
          when ori_op =>
             q.ex_ctrl.alu_src    <= immu_alu_src;
