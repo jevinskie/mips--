@@ -16,6 +16,7 @@ VPATH= $(WORKDIR)
 # begin VHDL files (keep this)
 
 common_tb.vhd : common.vhd
+common_pipe.vhd : common.vhd
 
 regfile_p.vhd : common.vhd
 regfile_r.vhd : common.vhd regfile_p.vhd
@@ -25,19 +26,13 @@ alu_p.vhd : common.vhd
 alu_r.vhd : common.vhd alu_p.vhd
 alu_tb.vhd : common.vhd common_tb.vhd alu_p.vhd alu_r.vhd
 
-pc_r.vhd : common.vhd pc_p.vhd
-pc_p.vhd : common.vhd
-pc_tb.vhd : common.vhd common_tb.vhd pc_p.vhd pc_r.vhd
-
 cpu.vhd : common.vhd cpu_p.vhd cpu_r.vhd
-cpu_r.vhd : common.vhd cpu_p.vhd pc_r.vhd alu_r.vhd regfile_r.vhd rami.vhd ramd.vhd memwait_r.vhd ctrl_r.vhd
+cpu_r.vhd : common.vhd common_pipe.vhd cpu_p.vhd alu_r.vhd regfile_r.vhd vram.vhd ctrl_r.vhd
 cpu_p.vhd : common.vhd
 tb_cpu.vhd : cpu.vhd
 cpuTest.vhd : cpu.vhd bintohexDecoder.vhd
 
-memwait_p.vhd : common.vhd
-memwait_r.vhd : common.vhd memwait_p.vhd
-memwait_tb.vhd : common.vhd common_tb.vhd memwait_p.vhd memwait_r.vhd
+vram.vhd : ram.vhd
 
 ctrl_p.vhd : common.vhd
 ctrl_r.vhd : common.vhd ctrl_p.vhd

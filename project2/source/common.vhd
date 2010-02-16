@@ -306,6 +306,31 @@ package common is
       mem_reg_src, pc_reg_src, alu_reg_src
    );
 
+
+   type mem_state_type is (
+      free_mem_state, busy_mem_state,
+      ready_mem_state, error_mem_state,
+      unimp_mem_state
+   );
+
+   type mem_state_enc_lut_array is array(mem_state_type) of std_logic_vector(1 downto 0);
+
+   constant mem_state_enc_lut : mem_state_enc_lut_array := (
+      free_mem_state    => "00",
+      busy_mem_state    => "01",
+      ready_mem_state   => "10",
+      error_mem_state   => "11",
+      unimp_mem_state   => "UU"
+   );
+
+   function to_slv (
+      mem_state : mem_state_type
+   ) return std_logic_vector;
+
+   function to_mem_state (
+      mem_state_slv : std_logic_vector
+   ) return mem_state_type;
+
 end;
 
 package body common is
@@ -615,6 +640,28 @@ package body common is
 
       return slv;
    end;
+
+
+   function to_slv (
+      mem_state : mem_state_type
+   ) return std_logic_vector is
+   begin
+      return mem_state_enc_lut(mem_state);
+   end;
+
+   function to_mem_state (
+      mem_state_slv : std_logic_vector
+   ) return mem_state_type is
+   begin
+      for mem_state in mem_state_type loop
+         if mem_state_slv = mem_state_enc_lut(mem_state) then
+            return mem_state;
+         end if;
+      end loop;
+
+      return unimp_mem_state;
+   end;
+
 
 end;
 
