@@ -34,15 +34,18 @@ begin
       q.mem_ctrl.mem_read  <= '0';
       q.mem_ctrl.mem_write <= '0';
       
-      q.wb_ctrl.reg_src <= alu_reg_src;
-      q.wb_ctrl.reg_write <= '1';
+      q.wb_ctrl.reg_src    <= alu_reg_src;
+      q.wb_ctrl.reg_write  <= '1';
 
       case d.r_ins.op is
+         
          -- R-type instructions
          when special_op =>
-            q.reg_dst <= '1';
+            q.reg_dst         <= '1';
             q.ex_ctrl.alu_src <= reg_alu_src;
+
             case d.r_ins.func is
+
                when addu_s_func =>
                   q.ex_ctrl.alu_op     <= add_alu_op;
 
@@ -80,6 +83,7 @@ begin
 
                when others =>
                   -- nothing
+
             end case;
 
          -- I-type instructions
@@ -145,8 +149,8 @@ begin
 
          when others =>
             -- nothing
-      end case;
 
+      end case;
 
    end process;
 

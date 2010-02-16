@@ -13,9 +13,7 @@ use ieee.numeric_std.all;
 package ctrl_pkg is
    
    type ctrl_in_type is record
-      j_ins : j_type;
       r_ins : r_type;
-      i_ins : i_type;
    end record;
 
    type ctrl_out_type is record

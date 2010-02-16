@@ -144,8 +144,6 @@ begin
    );
 
    ctrl_in.r_ins <= r_ins;
-   ctrl_in.i_ins <= i_ins;
-   ctrl_in.j_ins <= j_ins;
 
 
    regfile_b : regfile_r port map (
