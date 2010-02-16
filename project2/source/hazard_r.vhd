@@ -22,16 +22,34 @@ begin
    
    -- combinatiorial process
    comb : process(d)
+      variable t : reg_index;
    begin
       -- module algorithm
 
-      if d.id_dst /= 0 then
-         if d.id_dst = d.ex_dst or d.id_dst = d.mem_dst or d.id_dst = d.wb_dst then
-            q.stall <= '1';
-         else
-            q.stall <= '0';
-         end if;
-      end if;
+      q.stall <= '0';
+
+      case d.r_ins.op is
+         when special_op =>
+            t := d.r_ins.rt;
+            if t /= 0 then
+               if t = d.ex_dst or t = d.mem_dst or t = d.wb_dst then
+                  q.stall <= '1';
+               end if;
+            end if;
+            t := d.r_ins.rs;
+            if t /= 0 then
+               if t = d.ex_dst or t = d.mem_dst or t = d.wb_dst then
+                  q.stall <= '1';
+               end if;
+            end if;
+         when others =>
+            t := d.r_ins.rs;
+            if t /= 0 then
+               if t = d.ex_dst or t = d.mem_dst or t = d.wb_dst then
+                  q.stall <= '1';
+               end if;
+            end if;
+      end case;
 
    end process;
 

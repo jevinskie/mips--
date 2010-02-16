@@ -12,7 +12,7 @@ use ieee.numeric_std.all;
 package hazard_pkg is
    
    type hazard_in_type is record
-      id_dst   : reg_index;
+      r_ins    : r_type;
       ex_dst   : reg_index;
       mem_dst  : reg_index;
       wb_dst   : reg_index;

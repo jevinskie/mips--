@@ -158,19 +158,6 @@ begin
    -- JAL not supported!
    reg_in.wsel    <= mem_wb_reg.reg_dst;
 
-   -- this process selects the register index for the regfile write
-   reg_write_sel : process(ctrl_out.reg_dst)
-      variable i : reg_index;
-   begin
-      if ctrl_out.reg_dst = '1' then
-         i := r_ins.rd;
-      else
-         i := r_ins.rt;
-      end if;
-
-      id_ex_reg_in.reg_dst <= i;
-   end process;
-
 
    -- this process selects which value is written to the regfile
    -- warning, no longer supports JAL instructions
@@ -195,10 +182,31 @@ begin
    id_ex_reg_in.sa         <= r_ins.sa;
    id_ex_reg_in.imm        <= i_ins.imm;
 
-   id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
-   id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
-   id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
-   id_ex_reg_in.halt       <= '1' when r_ins.op = halt_op else '0';
+   process(hazard_out.stall, ctrl_out, r_ins)
+   begin
+      if hazard_out.stall = '1' then
+         id_ex_reg_in.reg_dst <= 0;
+         id_ex_reg_in.mem_ctrl.mem_read <= '0';
+         id_ex_reg_in.mem_ctrl.mem_write <= '0';
+         id_ex_reg_in.wb_ctrl.reg_write <= '0';
+         id_ex_reg_in.halt <= '0';
+      else
+         if ctrl_out.reg_dst = '1' then
+            id_ex_reg_in.reg_dst <= r_ins.rd;
+         else
+            id_ex_reg_in.reg_dst <= r_ins.rt;
+         end if;
+
+         id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
+         id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
+         id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
+         if r_ins.op = halt_op then
+            id_ex_reg_in.halt    <= '1';
+         else
+            id_ex_reg_in.halt    <= '0';
+         end if;
+      end if;
+   end process;
 
 
 
@@ -275,26 +283,31 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, ex_mem_reg.mem_ctrl, r_ins.op)
+   pipe_reg_proc : process(nrst, clk, mem_state)
    begin
       if nrst = '0' then
+         if_id_reg.ins <= (others => '0');
+         if_id_reg.pc_next <= (others => '0');
+         id_ex_reg.reg_dst <= 0;
          id_ex_reg.mem_ctrl.mem_read <= '0';
          id_ex_reg.mem_ctrl.mem_write <= '0';
          id_ex_reg.wb_ctrl.reg_write <= '0';
          id_ex_reg.halt <= '0';
+         ex_mem_reg.reg_dst <= 0;
          ex_mem_reg.mem_ctrl.mem_read <= '0';
          ex_mem_reg.mem_ctrl.mem_write <= '0';
          ex_mem_reg.wb_ctrl.reg_write <= '0';
          ex_mem_reg.halt <= '0';
+         mem_wb_reg.reg_dst <= 0;
          mem_wb_reg.wb_ctrl.reg_write <= '0';
          mem_wb_reg.halt <= '0';
       elsif rising_edge(clk) then
-         if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' and r_ins.op /= halt_op then
+         if mem_state = free_mem_state or mem_state = ready_mem_state then
             if_id_reg <= if_id_reg_in;
+            id_ex_reg <= id_ex_reg_in;
+            ex_mem_reg <= ex_mem_reg_in;
+            mem_wb_reg <= mem_wb_reg_in;
          end if;
-         id_ex_reg <= id_ex_reg_in;
-         ex_mem_reg <= ex_mem_reg_in;
-         mem_wb_reg <= mem_wb_reg_in;
       end if;
    end process;
 
@@ -312,7 +325,7 @@ begin
       d => hazard_in, q => hazard_out
    );
 
-   hazard_in.id_dst <= r_ins.rd;
+   hazard_in.r_ins <= r_ins;
    hazard_in.ex_dst <= id_ex_reg.reg_dst;
    hazard_in.mem_dst <= ex_mem_reg.reg_dst;
    hazard_in.wb_dst <= mem_wb_reg.reg_dst;
