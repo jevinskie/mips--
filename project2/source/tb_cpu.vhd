@@ -14,9 +14,11 @@ architecture tb_arch of tb_cpu is
 	component cpu
 		port(
 			-- begin ports needed for synthesis testing
-			altera_reserved_tms	:		in	std_logic;
-			altera_reserved_tck	:		in	std_logic;
-			altera_reserved_tdi	:		in	std_logic;
+         -- synthesis read_comments_as_HDL on
+			-- altera_reserved_tms	=>	'0',
+			-- altera_reserved_tck	=>	'0',
+			-- altera_reserved_tdi	=>	'0',
+         -- synthesis read_comments_as_HDL off
 			-- end ports needed for synthesis testing
 			-- clock signal
     	CLK									:		in	std_logic;
@@ -79,9 +81,11 @@ begin
 
   DUT: cpu port map(
 			-- begin ports needed for synthesis testing
-			altera_reserved_tms	=>	'0',
-			altera_reserved_tck	=>	'0',
-			altera_reserved_tdi	=>	'0',
+         -- synthesis read_comments_as_HDL on
+			-- altera_reserved_tms	=>	'0',
+			-- altera_reserved_tck	=>	'0',
+			-- altera_reserved_tdi	=>	'0',
+         -- synthesis read_comments_as_HDL off
 			-- end ports needed for synthesis testing
     	CLK									=> clk,
     	nReset							=> nReset,
