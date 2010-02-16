@@ -2,6 +2,7 @@
 
 
 use work.common.all;
+use work.common_pipe.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -18,13 +19,10 @@ package ctrl_pkg is
    end record;
 
    type ctrl_out_type is record
-      reg_dst     : std_logic;
-      mem_read    : std_logic;
-      reg_src     : reg_src_type;
-      mem_write   : std_logic;
-      alu_src     : alu_src_type;
-      reg_write   : std_logic;
-      alu_op      : alu_op_type;
+      reg_dst  : std_logic;
+      ex_ctrl  : ex_ctrl_type;
+      mem_ctrl : mem_ctrl_type;
+      wb_ctrl  : wb_ctrl_type;
    end record;
 
    component ctrl_r

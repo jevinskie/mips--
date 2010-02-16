@@ -12,8 +12,8 @@ package common_pipe is
 
 
    type ex_ctrl_type is record
-      reg_dst     : std_logic;
       alu_src     : alu_src_type;
+      alu_op      : alu_op_type;
    end record;
 
    type mem_ctrl_type is record
@@ -28,7 +28,8 @@ package common_pipe is
 
 
    type if_id_reg_type is record
-      ins : word;
+      ins      : word;
+      pc_next  : address;
    end record;
 
    type id_ex_reg_type is record
@@ -36,9 +37,7 @@ package common_pipe is
       rdat2    : word;
       sa       : shift_amount;
       imm      : immediate;
-      rs       : reg_index;
-      rt       : reg_index;
-      rd       : reg_index;
+      reg_dst  : reg_index;
       ex_ctrl  : ex_ctrl_type;
       mem_ctrl : mem_ctrl_type;
       wb_ctrl  : wb_ctrl_type;
@@ -47,6 +46,8 @@ package common_pipe is
 
    type ex_mem_reg_type is record
       alu_res  : word;
+      rdat2    : word;
+      reg_dst  : reg_index;
       mem_ctrl : mem_ctrl_type;
       wb_ctrl  : wb_ctrl_type;
       halt     : std_logic;
@@ -55,15 +56,9 @@ package common_pipe is
    type mem_wb_reg_type is record
       alu_res  : word;
       lw_res   : word;
+      reg_dst  : reg_index;
       wb_ctrl  : wb_ctrl_type;
       halt     : std_logic;
-   end record;
-
-   type all_pipe_reg_type is record
-      if_id_reg   : if_id_reg_type;
-      id_ex_reg   : id_ex_reg_type;
-      ex_mem_reg  : ex_mem_reg_type;
-      mem_wb_reg  : mem_wb_reg_type;
    end record;
 
 

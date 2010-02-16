@@ -76,83 +76,18 @@ architecture structural of cpu_r is
 begin
 
 
-   regfile_b : regfile_r port map (
-      clk => clk, nrst => nrst,
-      d => reg_in, q => reg_out
-   );
-
-   reg_in.rsel1 <= r_ins.rs;
-   reg_in.rsel2 <= r_ins.rt;
-   reg_in.wen <= ctrl_out.reg_write and not memwait and not halt;
-
-   reg_write_sel : process(ctrl_out.reg_dst, r_ins.rt, r_ins.rd, r_ins.op)
-      variable i : reg_index;
-   begin
-      if r_ins.op = jal_op then
-         i := 31;
-      elsif ctrl_out.reg_dst = '1' then
-         i := r_ins.rd;
-      else
-         i := r_ins.rt;
-      end if;
-
-      reg_in.wsel <= i;
-   end process;
-
-   reg_write_mux : process(ctrl_out.reg_src, pc_out.pc, dmem_rdat, alu_out.r)
-      variable r : word;
-      case ctrl_out.reg_src is
-         when mem_reg_src  => r := dmem_rdat;
-         when pc_reg_src   => r := pc_out.pc + 4;
-         when alu_reg_src  => r := alu_out.r;
-      end case;
-
-      reg_in.wdat <= r;
-   end process;
-
-
-   alu_b : alu_r port map (
-      d => alu_in, q => alu_out
-   );
-
-   z <= alu_out.z;
-   alu_in.a <= reg_out.rdat1;
-   alu_in.op <= ctrl_out.alu_op;
-   
-   alu_mux : process (ctrl_out.alu_src, reg_out.rdat2, i_ins.imm, r_ins.sa)
-      variable r : word;
-   begin
-      case ctrl_out.alu_src is
-         when reg_alu_src  => r := reg_out.rdat2;
-         when imm_alu_src  => r := unsigned(resize(signed(i_ins.imm), r'length));
-         when immu_alu_src => r := resize(i_ins.imm, r'length);
-         when sa_alu_src   => r := to_unsigned(r_ins.sa, r'length);
-         when lui_alu_src  => r := zero_fill_right(i_ins.imm, r'length);
-      end case;
-
-      alu_in.b <= r;
-   end process;
-
-
-   ctrl_b : ctrl_r port map (
-      d => ctrl_in, q => ctrl_out
-   );
-
-   ctrl_in.r_ins <= r_ins;
-   ctrl_in.i_ins <= i_ins;
-   ctrl_in.j_ins <= j_ins;
-
-   
-   r_ins <= to_r_type(std_logic_vector(imem_dat));
-   j_ins <= to_j_type(std_logic_vector(imem_dat));
-   i_ins <= to_i_type(std_logic_vector(imem_dat));
+   ---------------------------------------
+   ---------------------------------------
+   ---------      IF STAGE       ---------
+   ---------------------------------------
+   ---------------------------------------
 
 
    -- pc register process
    pc_reg_proc : process(nrst, clk)
    begin
       if nrst = '0' then
-         pc => (others => '0');
+         pc <= (others => '0');
       elsif rising_edge(clk) then
          if pc_wen = '1' then
             pc <= pc_in;
@@ -161,7 +96,7 @@ begin
    end process;
 
    -- pc_wen logic
-   pc_wen_proc : process
+   pc_wen_proc : process(ex_mem_reg.mem_ctrl.mem_read)
    begin
       if ex_mem_reg.mem_ctrl.mem_read = '1' then
          pc_wen <= '0';
@@ -169,52 +104,180 @@ begin
    end process;
 
 
-   dmem_addr <= alu_out.r when halt = '0' else resize(d.dump_addr, address'length);
-   dmem_rdat <= unsigned(dmem_rdat_slv);
-   dmem_wdat <= reg_out.rdat2;
-   dmem_wen  <= ctrl_out.mem_write;
+   -- instruction memory (from vmem)
+   imem_addr <= pc;
+   imem_dat <= mem_rdat;
+
+
+   -- feed the IF/ID pipeline registers
+   if_id_reg_in.ins     <= imem_dat;
+   if_id_reg_in.pc_next <= pc + 4;
 
 
 
 
-   -- pipeline registers
-   all_pipe_reg_proc : process(nrst, clk)
+   ---------------------------------------
+   ---------------------------------------
+   ---------      ID STAGE       ---------
+   ---------------------------------------
+   ---------------------------------------
+
+
+   -- decode instructions to all types
+   r_ins <= to_r_type(std_logic_vector(if_id_reg.ins));
+   j_ins <= to_j_type(std_logic_vector(if_id_reg.ins));
+   i_ins <= to_i_type(std_logic_vector(if_id_reg.ins));
+
+
+   -- control block
+   ctrl_b : ctrl_r port map (
+      d => ctrl_in, q => ctrl_out
+   );
+
+   ctrl_in.r_ins <= r_ins;
+   ctrl_in.i_ins <= i_ins;
+   ctrl_in.j_ins <= j_ins;
+
+
+   regfile_b : regfile_r port map (
+      clk => clk, nrst => nrst,
+      d => reg_in, q => reg_out
+   );
+
+   reg_in.rsel1   <= r_ins.rs;
+   reg_in.rsel2   <= r_ins.rt;
+   reg_in.wen     <= mem_wb_reg.wb_ctrl.reg_write;
+   -- JAL not supported!
+   reg_in.wsel    <= mem_wb_reg.reg_dst;
+
+   -- this process selects the register index for the regfile write
+   reg_write_sel : process(ctrl_out.reg_dst)
+      variable i : reg_index;
    begin
-      if nrst = '0' then
-         
-      elsif rising_edge(clk) then
-         if_id_reg   <= if_id_reg_in;
-         id_ex_reg   <= id_ex_reg_in;
-         ex_mem_reg  <= ex_mem_reg_in;
-         mem_wb_reg  <= mem_wb_reg_in;
+      if ctrl_out.reg_dst = '1' then
+         i := r_ins.rd;
+      else
+         i := r_ins.rt;
       end if;
+
+      id_ex_reg_in.reg_dst <= i;
    end process;
 
+
+   -- this process selects which value is written to the regfile
+   -- warning, no longer supports JAL instructions
+   reg_write_mux : process(mem_wb_reg)
+      variable r : word;
+   begin
+      case mem_wb_reg.wb_ctrl.reg_src is
+         when mem_reg_src  => r := mem_wb_reg.lw_res;
+         when alu_reg_src  => r := mem_wb_reg.alu_res;
+         -- JAL not supported!
+         when pc_reg_src   => null;
+      end case;
+
+      reg_in.wdat <= r;
+   end process;
+
+
+   -- feed the ID/EX pipeline register inputs
+   id_ex_reg_in.rdat1      <= reg_out.rdat1;
+   id_ex_reg_in.rdat2      <= reg_out.rdat2;
+   -- id_ex_reg_in.reg_dst assigned in reg_write_sel process!
+   id_ex_reg_in.sa         <= r_ins.sa;
+   id_ex_reg_in.imm        <= i_ins.imm;
+
+   id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
+   id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
+   id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
+   id_ex_reg_in.halt       <= '1' when r_ins.op = halt_op else '0';
+
+
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------      EX STAGE       ---------
+   ---------------------------------------
+   ---------------------------------------
+
+
+   alu_b : alu_r port map (
+      d => alu_in, q => alu_out
+   );
+
+   alu_in.a <= id_ex_reg.rdat1;
+   alu_in.op <= id_ex_reg.ex_ctrl.alu_op;
+   
+   alu_mux : process (id_ex_reg)
+      variable r : word;
+   begin
+      case id_ex_reg.ex_ctrl.alu_src is
+         when reg_alu_src  => r := id_ex_reg.rdat2;
+         when imm_alu_src  => r := unsigned(resize(signed(id_ex_reg.imm), r'length));
+         when immu_alu_src => r := resize(id_ex_reg.imm, r'length);
+         when sa_alu_src   => r := to_unsigned(id_ex_reg.sa, r'length);
+         when lui_alu_src  => r := zero_fill_right(id_ex_reg.imm, r'length);
+      end case;
+
+      alu_in.b <= r;
+   end process;
+
+
+   -- feed the EX/MEM pipeline register inputs
+   ex_mem_reg_in.alu_res   <= alu_out.r;
+   ex_mem_reg_in.rdat2     <= id_ex_reg.rdat2;
+   ex_mem_reg_in.reg_dst   <= id_ex_reg.reg_dst;
+   
+   ex_mem_reg_in.mem_ctrl  <= id_ex_reg.mem_ctrl;
+   ex_mem_reg_in.wb_ctrl   <= id_ex_reg.wb_ctrl;
+   ex_mem_reg_in.halt      <= id_ex_reg.halt;
+
+
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------      MEM STAGE      ---------
+   ---------------------------------------
+   ---------------------------------------
+
+
+   -- data memory (from vmem)
+   dmem_addr <= ex_mem_reg.alu_res when ex_mem_reg.halt = '0' else resize(d.dump_addr, address'length);
+   dmem_rdat <= mem_rdat;
+   dmem_wdat <= ex_mem_reg.rdat2;
+   dmem_wen  <= ex_mem_reg.mem_ctrl.mem_write;
+
+   -- feed the MEM/WB pipeline register inputs
+   mem_wb_reg_in.alu_res   <= ex_mem_reg.alu_res;
+   mem_wb_reg_in.lw_res    <= dmem_rdat;
+   mem_wb_reg_in.reg_dst   <= ex_mem_reg.reg_dst;
+
+   mem_wb_reg_in.wb_ctrl   <= ex_mem_reg.wb_ctrl;
+   mem_wb_reg_in.halt      <= ex_mem_reg.halt;
+
+
+
+
+   ---------------------------------------
+   ---------------------------------------
+   ---------      SYS MEMORY     ---------
+   ---------------------------------------
+   ---------------------------------------
 
    -- main memory
    mem_b : entity work.vram port map (
       nReset => nrst, clock => clk,
-      address => std_logic_vector(mem_addr),
+      address => std_logic_vector(mem_addr(15 downto 0)),
       data => std_logic_vector(mem_wdat),
       wren => mem_wen, rden => mem_ren,
       halt => mem_halt, q => mem_rdat_slv,
-      memstate => mem_state_slv;
+      memstate => mem_state_slv
    );
 
    mem_rdat <= unsigned(mem_rdat_slv);
    mem_state <= to_mem_state(mem_state_slv);
-
-
-   q.halt <= mem_wb_reg.halt;
-
-
-   -- cpu mappings
-   q.imem_addr <= imem_addr;
-   q.imem_dat <= imem_dat;
-   q.dmem_addr <= dmem_addr;
-   q.dmem_rdat <= dmem_rdat;
-   q.dmem_wdat <= dmem_wdat;
-
 
 end;
 
