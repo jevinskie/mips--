@@ -18,9 +18,6 @@ entity cpuTest is
 		HEX5								:	out		std_logic_vector(6 downto 0);
 		HEX6								:	out		std_logic_vector(6 downto 0);
 		HEX7								:	out		std_logic_vector(6 downto 0);
-		-- general perpose io (both have 36 pins but logic analyzer only supports 64)
-		GPIO_0							: out		std_logic_vector(31 downto 0);
-		GPIO_1							: out		std_logic_vector(31 downto 0);
 		-- the leds
 		LEDG             		: out   std_logic_vector(8 downto 0)
 	);
@@ -46,6 +43,12 @@ architecture behavioral of cpuTest is
 			dmemDataRead		:	out		std_logic_vector(31 downto 0);
 			-- data written to memory
 			dmemDataWrite		:	out		std_logic_vector(31 downto 0);
+			-- start mmio addins
+			-- dip switch in
+			dipIn						:		in	std_logic_vector(15 downto 0);
+			-- hexout
+			hexOut					:		out	std_logic_vector(31 downto 0);
+			-- end mmio addins
 			-- address to dump
 			dumpAddr : in std_logic_vector(15 downto 0)
 		);
@@ -65,55 +68,47 @@ architecture behavioral of cpuTest is
 	signal dmemDataRead		:	std_logic_vector (31 downto 0);
 	signal dmemDataWrite	:	std_logic_vector (31 downto 0);
 	signal dpaddr					:	std_logic_vector (15 downto 0);
-	signal halt						:	std_logic;
+	signal dipin					:	std_logic_vector (15 downto 0);
+	signal hexout					:	std_logic_vector (31 downto 0);
 
 begin
 
 	cpu_comp : cpu port map (
 		CLK       		=> CLOCK_27,
 		nReset    		=> KEY (3),
-		halt      		=> halt, --LEDG (8),
+		halt      		=> LEDG (8),
 		imemAddr			=> imemAddr,
 		imemData			=> imemData,
 		dmemAddr			=> dmemAddr,
 		dmemDataRead	=> dmemDataRead,
 		dmemDataWrite	=> dmemDataWrite,
+		dipIn					=> dipin,
+		hexOut				=> hexout,
 		dumpAddr			=> dpaddr);
 
-	--port map decoders:
-	BTH0: bintohexDecoder port map (dmemDataRead (3 downto 0), HEX0);
-	BTH1: bintohexDecoder port map (dmemDataRead (7 downto 4), HEX1);	
-	BTH2: bintohexDecoder port map (dmemDataRead (11 downto 8), HEX2);
-	BTH3: bintohexDecoder port map (dmemDataRead (15 downto 12), HEX3);
-	BTH4: bintohexDecoder port map (dmemDataRead (19 downto 16), HEX4);
-	BTH5: bintohexDecoder port map (dmemDataRead (23 downto 20), HEX5);
-	BTH6: bintohexDecoder port map (dmemDataRead (27 downto 24), HEX6);
-	BTH7: bintohexDecoder port map (dmemDataRead (31 downto 28), HEX7);
+	--port map decoders to show address:
+	--BTH0: bintohexDecoder port map (dmemDataRead (3 downto 0), HEX0);
+	--BTH1: bintohexDecoder port map (dmemDataRead (7 downto 4), HEX1);	
+	--BTH2: bintohexDecoder port map (dmemDataRead (11 downto 8), HEX2);
+	--BTH3: bintohexDecoder port map (dmemDataRead (15 downto 12), HEX3);
+	--BTH4: bintohexDecoder port map (dmemDataRead (19 downto 16), HEX4);
+	--BTH5: bintohexDecoder port map (dmemDataRead (23 downto 20), HEX5);
+	--BTH6: bintohexDecoder port map (dmemDataRead (27 downto 24), HEX6);
+	--BTH7: bintohexDecoder port map (dmemDataRead (31 downto 28), HEX7);
 
-	-- address to dump i cut off the last 2 bits
-	-- which are always 0 for 4 byte aligned memory spaces
-	dpaddr(15 downto 2) <= SW (13 downto 0);
-	dpaddr(1 downto 0) <= "00";
-	-- halt signal
-	LEDG(8) <= halt;
+	-- mmio output
+	BTH0: bintohexDecoder port map (hexout(3 downto 0), HEX0);
+	BTH1: bintohexDecoder port map (hexout(7 downto 4), HEX1);	
+	BTH2: bintohexDecoder port map (hexout(11 downto 8), HEX2);
+	BTH3: bintohexDecoder port map (hexout(15 downto 12), HEX3);
+	BTH4: bintohexDecoder port map (hexout(19 downto 16), HEX4);
+	BTH5: bintohexDecoder port map (hexout(23 downto 20), HEX5);
+	BTH6: bintohexDecoder port map (hexout(27 downto 24), HEX6);
+	BTH7: bintohexDecoder port map (hexout(31 downto 28), HEX7);
 
-	-- logic analyzer mux use switches 17 downto 14
-	-- signals we need to always have:
-	-- clock
-	GPIO_0(31) <= CLOCK_27;
-	-- nreset
-	GPIO_0(30) <= KEY(3);
-	-- halt
-	GPIO_0(29) <= halt;
-	-- user definable pins 29 of them
-	-- can use 17 downto 16 for GPIO_0(28 downto 0)
-	GPIO_0(28 downto 0) <= "00000000000000000000000000000";
-	
-	-- databus/addr toggle between instr and data
-	with SW(15 downto 14) select
-		GPIO_1 <= imemData when "01",
-							dmemDataRead when "10",
-							dmemDataWrite when "11",
-							imemAddr(15 downto 0) & dmemAddr(15 downto 0) when others;
-
+	-- address to dump
+	--dpaddr <= SW (15 downto 0);
+	dpaddr <= (others => '0');
+	-- mmio dip switches
+	dipin <= SW (15 downto 0);
 end behavioral;

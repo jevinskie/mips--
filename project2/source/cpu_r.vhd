@@ -167,38 +167,42 @@ begin
          when mem_reg_src  => r := mem_wb_reg.lw_res;
          when alu_reg_src  => r := mem_wb_reg.alu_res;
          -- JAL not supported!
-         when pc_reg_src   => null;
+         when pc_reg_src   => r := x"DEADBEEF";
       end case;
 
       reg_in.wdat <= r;
    end process;
 
 
-   -- feed the ID/EX pipeline register inputs
-   id_ex_reg_in.rdat1      <= reg_out.rdat1;
-   id_ex_reg_in.rdat2      <= reg_out.rdat2;
-   -- id_ex_reg_in.reg_dst assigned in reg_write_sel process!
-   id_ex_reg_in.sa         <= r_ins.sa;
-   id_ex_reg_in.imm        <= i_ins.imm;
 
-   process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl)
+
+   process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl, reg_out, i_ins.imm)
    begin
+      -- feed the ID/EX pipeline register inputs
+      id_ex_reg_in.rdat1      <= reg_out.rdat1;
+      id_ex_reg_in.rdat2      <= reg_out.rdat2;
+      -- id_ex_reg_in.reg_dst assigned in reg_write_sel process!
+      id_ex_reg_in.sa         <= r_ins.sa;
+      id_ex_reg_in.imm        <= i_ins.imm;
+      
+      id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
+      id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
+      id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
+      
       if hazard_out.stall = '1' or
          (ex_mem_reg.mem_ctrl.mem_read = '1' or ex_mem_reg.mem_ctrl.mem_write = '1') then
          id_ex_reg_in.reg_dst <= 0;
          id_ex_reg_in.mem_ctrl.mem_read <= '0';
          id_ex_reg_in.mem_ctrl.mem_write <= '0';
+         id_ex_reg_in.wb_ctrl.reg_src <= alu_reg_src;
          id_ex_reg_in.wb_ctrl.reg_write <= '0';
+         id_ex_reg_in.halt <= '0';
       else
          if ctrl_out.reg_dst = '1' then
             id_ex_reg_in.reg_dst <= r_ins.rd;
          else
             id_ex_reg_in.reg_dst <= r_ins.rt;
          end if;
-
-         id_ex_reg_in.ex_ctrl    <= ctrl_out.ex_ctrl;
-         id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
-         id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
       end if;
 
       if r_ins.op = halt_op then
@@ -287,19 +291,32 @@ begin
    pipe_reg_proc : process(nrst, clk, mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
    begin
       if nrst = '0' then
-         if_id_reg.ins <= (others => '0');
-         if_id_reg.pc_next <= (others => '0');
+         if_id_reg.ins <= to_word(0);
+         if_id_reg.pc_next <= to_word(0);
+         id_ex_reg.rdat1 <= to_word(0);
+         id_ex_reg.rdat2 <= to_word(0);
+         id_ex_reg.sa <= 0;
+         id_ex_reg.imm <= to_hword(0);
          id_ex_reg.reg_dst <= 0;
+         id_ex_reg.ex_ctrl.alu_src <= reg_alu_src;
+         id_ex_reg.ex_ctrl.alu_op <= sll_alu_op;
          id_ex_reg.mem_ctrl.mem_read <= '0';
          id_ex_reg.mem_ctrl.mem_write <= '0';
+         id_ex_reg.wb_ctrl.reg_src <= alu_reg_src;
          id_ex_reg.wb_ctrl.reg_write <= '0';
          id_ex_reg.halt <= '0';
+         ex_mem_reg.alu_res <= to_word(0);
+         ex_mem_reg.rdat2 <= to_word(0);
          ex_mem_reg.reg_dst <= 0;
          ex_mem_reg.mem_ctrl.mem_read <= '0';
          ex_mem_reg.mem_ctrl.mem_write <= '0';
+         ex_mem_reg.wb_ctrl.reg_src <= alu_reg_src;
          ex_mem_reg.wb_ctrl.reg_write <= '0';
          ex_mem_reg.halt <= '0';
+         mem_wb_reg.alu_res <= to_word(0);
+         mem_wb_reg.lw_res <= to_word(0);
          mem_wb_reg.reg_dst <= 0;
+         mem_wb_reg.wb_ctrl.reg_src <= alu_reg_src;
          mem_wb_reg.wb_ctrl.reg_write <= '0';
          mem_wb_reg.halt <= '0';
       elsif rising_edge(clk) then
@@ -356,7 +373,7 @@ begin
    mem_state <= to_mem_state(mem_state_slv);
    mem_halt <= mem_wb_reg.halt;
 
-   process(pc, ex_mem_reg, d.dump_addr, mem_wb_reg.halt, ex_mem_reg.mem_ctrl)
+   process(pc, ex_mem_reg, d.dump_addr, mem_wb_reg.halt)
    begin
       if mem_wb_reg.halt = '0' then
          if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' then
