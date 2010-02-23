@@ -29,7 +29,7 @@ package common_pipe is
 
    type if_id_reg_type is record
       ins      : word;
-      pc_next  : address;
+      pc_inc   : address;
    end record;
 
    type id_ex_reg_type is record

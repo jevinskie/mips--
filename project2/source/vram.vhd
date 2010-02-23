@@ -1,6 +1,16 @@
+--------------------------------------------------
+--Filename: 	 vram.vhd 			--
+--Version: 	 1.2				--
+--Last revision: Feb 17th, 2010, 15:20pm. 	--
+--Copyright:	 ECE437L @ Purdue University	--
+--Author:	 Yue Du, Abhisek Pan		--
+--						--
+--for education purpose and internal use only	--
+--any questions please contact ydu@purdue.edu	--
+--------------------------------------------------
+
 library ieee;
 use ieee.std_logic_1164.all;
-use IEEE.std_logic_arith.all; 
 use IEEE.std_logic_unsigned.all; 
 
 entity vram is
@@ -16,7 +26,6 @@ entity vram is
 		q		: out std_logic_vector (31 DOWNTO 0);
 		memstate	: out std_logic_vector (1 DOWNTO 0)
 	);
-
 end vram;
 
 architecture vram_arch of vram is
@@ -38,12 +47,11 @@ architecture vram_arch of vram is
 	-- if LATENCY is set to 0, then there will be no busy state and counter will not count, 
 	-- it will go straight to ready state and takes only one cycle to access the memory like lab4. 
 	-- also keep in mind that LATENCY conunter is 4 bits, do not change to some number beyond, like a million. :)
-	constant LATENCY	: std_logic_vector		:= x"02";
+	constant LATENCY	: std_logic_vector		:= x"0";
 	
-	-- when memory is in free or busy or error or reset state, this are the temperay outputs and also dummy outputs.
+	-- when memory is in free or busy or error or reset state, this is the temperay output and also dummy output.
 	-- only when memory hits ready state, then your read or write will be completed. you can change this as well. 
 	constant BAD1BAD1	: std_logic_vector		:= x"BAD1BAD1";
-	constant BAD1		: std_logic_vector		:= x"BAD1";		
 
 	-- MEMFREE : when read enable (rden) or write enable (wren) are both '0', then memory is free to use
 	-- MEMBUSY : when either read enable (rden) or write enable (wren) is '1', then memory enters busy state, 
@@ -60,9 +68,10 @@ architecture vram_arch of vram is
 	constant MEMREADY	: std_logic_vector		:= "10";
 	constant MEMERROR	: std_logic_vector		:= "11";
 
-	-- for internal read or write control state.
+	-- for internal read or write control state and counter initialization.
 	constant READ		: std_logic			:= '0';
 	constant WRITE		: std_logic			:= '1';
+	constant ZEROS		: std_logic_vector		:= x"0";
 
 	-- internal write enable, temperay q, temperay data, and temperay address. used as wrapper signals to ram.vhd
 	signal write_en		: std_logic;
@@ -73,7 +82,7 @@ architecture vram_arch of vram is
 	-- internal state signal connecting to output memstate signal, flag to MEMFREE, MEMBUSY, MEMREADY, and MEMERROR.
 	-- internal memory operation control signal, flag to READ or WRITE base on wren and rden inputs at the begining of busy state.
 	-- internal count signal in latency counter. 4 bits counter.
-	signal state		: std_logic_vector (1 DOWNTO 0);
+	signal state		: std_logic_vector (1 downto 0);
 	signal memop		: std_logic;
 	signal count		: std_logic_vector (3 downto 0);
 
@@ -81,59 +90,51 @@ begin
  	SYNRAM : ram
 	port map ( tempaddr, clock, tempdata, write_en, data_out );
 
-	memory: process(clock, nReset, wren, rden, state, count, halt, address, data, data_out)
+	memory: process(nReset, clock, wren, rden, halt, state, count, data_out)
 	begin
 		if nReset = '0' then
 			state <= MEMFREE;
 			memop <= READ;
-			write_en <= '0';
-			tempaddr <= BAD1;
-			tempdata <= BAD1BAD1;
+			write_en <= READ;
 			q <= BAD1BAD1;
-			count <= x"0";
+			count <= ZEROS;
 		elsif(LATENCY = x"0" or halt = '1') then
                         if(wren = '1' and rden = '1') then
                                 state <= MEMERROR;
                                 memop <= READ;
-                                write_en <= '0';
-                                tempaddr <= BAD1;
-                                tempdata <= BAD1BAD1;
+                                write_en <= READ;
                                 q <= BAD1BAD1;
-                                count <= x"0";
+				count <= ZEROS;	
 			elsif(wren = '1' and rden = '0') then
 				state <= MEMREADY;
 				memop <= WRITE;
-				write_en <= '1';
-				tempaddr <= address;
-				tempdata <= data;
-				count <= x"0";	
+				write_en <= WRITE;
+                                q <= BAD1BAD1;
+				count <= ZEROS;	
 			elsif(wren = '0' and rden = '1') then
 				state <= MEMREADY;
 				memop <= READ;
-				write_en <= '0';
-				tempaddr <= address;
+				write_en <= READ;
 				q <= data_out;
-				count <= x"0";
+				count <= ZEROS;	
 			elsif (wren = '0' and rden = '0') then
                                 state <= MEMFREE;
                                 memop <= READ;
-                                write_en <= '0';
-                                tempaddr <= BAD1;
-                                tempdata <= BAD1BAD1;
+                                write_en <= READ;
                                 q <= BAD1BAD1;
-                                count <= x"0";
-			end if;		
+				count <= ZEROS;	
+			end if;	
 		elsif (falling_edge(clock)) then
 			if(state = MEMBUSY) then	
 				if (count = LATENCY) then
 					if (memop = WRITE) then
-						write_en <= '1';
+						write_en <= WRITE;
 					elsif (memop = READ) then								 
+						write_en <= READ;
 						q <= data_out;
-						write_en <= '0';
 					end if;	
 					state <= MEMREADY;
-					count <= x"0";
+					count <= ZEROS;
 				else
 					count <= count + 1;
 				end if;
@@ -141,37 +142,34 @@ begin
 				if (wren = '1' and rden = '1') then
 					state <= MEMERROR;
 					memop <= READ;
-					write_en <= '0';	
-					tempaddr <= BAD1;
-					tempdata <= BAD1BAD1;
+					write_en <= READ;	
 					q <= BAD1BAD1;
-					count <= x"0";
+					count <= ZEROS;
 				elsif (wren = '1' and rden = '0') then
 					state <= MEMBUSY;
 					memop <= WRITE;
-					write_en <= '0';	
-					tempaddr <= address;
-					tempdata <= data;
+					write_en <= READ;	
+					q <= BAD1BAD1;
 					count <= count + 1;	
 				elsif (wren = '0' and rden = '1') then
 					state <= MEMBUSY;
 					memop <= READ;
-					write_en <= '0';	
-					tempaddr <= address;
-					tempdata <= data;
+					write_en <= READ;
+					q <= BAD1BAD1;	
 					count <= count + 1;
 				elsif (wren = '0' and rden = '0') then
 					state <= MEMFREE;
 					memop <= READ;
-					write_en <= '0';	
-					tempaddr <= BAD1;
-					tempdata <= BAD1BAD1;
+					write_en <= READ;	
 					q <= BAD1BAD1;
-					count <= x"0";
+					count <= ZEROS;
 				end if;
 			end if; 
 		end if;
 	end process;
-			
+		
+	tempaddr <= address;
+	tempdata <= data; 	
 	memstate <= state;	
 end vram_arch;
+
