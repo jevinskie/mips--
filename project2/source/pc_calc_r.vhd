@@ -24,6 +24,7 @@ begin
    comb : process(d)
    begin
          if d.op = j_op or d.op = jal_op then
+            q.pc(31 downto 28) <= d.pc_inc(31 downto 28);
             q.pc(27 downto 0) <= d.j_addr & "00";
             q.branch <= '1';
          elsif d.op = special_op and d.func = jr_s_func then
