@@ -42,6 +42,12 @@ begin
                   q.stall <= '1';
                end if;
             end if;
+         when jal_op =>
+            if d.ex_dst = 31 or d.mem_dst = 31 or d.wb_dst = 31 then
+               q.stall <= '1';
+            else
+               q.stall <= '0';
+            end if;
          when others =>
             t := d.r_ins.rs;
             if t /= 0 then

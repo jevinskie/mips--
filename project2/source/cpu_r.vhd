@@ -157,22 +157,43 @@ begin
 
    reg_in.rsel1   <= r_ins.rs;
    reg_in.rsel2   <= r_ins.rt;
-   reg_in.wen     <= mem_wb_reg.wb_ctrl.reg_write;
-   -- JAL not supported!
-   reg_in.wsel    <= mem_wb_reg.reg_dst;
+   process(mem_wb_reg, r_ins, hazard_out.stall, pc_calc_out.branch)
+   begin
+      if r_ins.op /= jal_op then
+         reg_in.wen  <= mem_wb_reg.wb_ctrl.reg_write;
+         reg_in.wsel <= mem_wb_reg.reg_dst;
+      elsif pc_calc_out.branch = '1' and hazard_out.stall = '0' then
+         reg_in.wen  <= '1';
+         reg_in.wsel <= 31;
+      else
+         reg_in.wen  <= mem_wb_reg.wb_ctrl.reg_write;
+         reg_in.wsel <= mem_wb_reg.reg_dst;
+      end if;
+   end process;
 
 
    -- this process selects which value is written to the regfile
    -- warning, no longer supports JAL instructions
-   reg_write_mux : process(mem_wb_reg)
+   reg_write_mux : process(mem_wb_reg, r_ins.op, if_id_reg.pc_inc, hazard_out, pc_calc_out)
       variable r : word;
    begin
-      case mem_wb_reg.wb_ctrl.reg_src is
-         when mem_reg_src  => r := mem_wb_reg.lw_res;
-         when alu_reg_src  => r := mem_wb_reg.alu_res;
-         -- JAL not supported!
-         when pc_reg_src   => r := x"DEADBEEF";
-      end case;
+      if r_ins.op /= jal_op then
+         case mem_wb_reg.wb_ctrl.reg_src is
+            when mem_reg_src  => r := mem_wb_reg.lw_res;
+            when alu_reg_src  => r := mem_wb_reg.alu_res;
+            -- this is meaningless now
+            when pc_reg_src   => r := x"DEADBEEF";
+         end case;
+      elsif pc_calc_out.branch = '1' and hazard_out.stall = '0' then
+         r := if_id_reg.pc_inc;
+      else
+         case mem_wb_reg.wb_ctrl.reg_src is
+            when mem_reg_src  => r := mem_wb_reg.lw_res;
+            when alu_reg_src  => r := mem_wb_reg.alu_res;
+            -- this is meaningless now
+            when pc_reg_src   => r := x"DEADBEEF";
+         end case;
+      end if;
 
       reg_in.wdat <= r;
    end process;
