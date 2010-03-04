@@ -10,7 +10,7 @@ my @asm_files = @ARGV;
 
 foreach my $file (@asm_files)
 {
-   print "Testing $file:\n";
+   print "Testing $file:\n\n";
    assemble($file);
    my $num_ins = simulate();
    my $pipe_cycles = vsim();
@@ -22,11 +22,11 @@ foreach my $file (@asm_files)
    my $sc_cycles = vsim();
    my $sc_cpi = $sc_cycles / $num_ins;
    check_results() or print "singlecycle failed for $file\n";
-   print "Instructions: $num_ins\n";
+   print "Instructions: $num_ins\n\n";
    print "Pipeline Cycles: $pipe_cycles\n";
-   print "Pipeline CPI: $pipe_cpi\n";
+   print "Pipeline CPI: $pipe_cpi\n\n";
    print "Singlecycle Cycles: $sc_cycles\n";
-   print "Singlecycle CPI: $sc_cpi\n";
+   print "Singlecycle CPI: $sc_cpi\n\n\n\n";
    chdir("../project2");
 }
 
@@ -54,7 +54,7 @@ sub vsim
 
    $vsim_out =~ m/# Halted, cycles=(\d+)/;
 
-   return $1;
+   return $1 - 1;
 }
 
 # returns 1 if OK
