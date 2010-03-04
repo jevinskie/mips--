@@ -50,7 +50,7 @@ sub simulate
 
 sub vsim
 {
-   my $vsim_out = `vsim -c -do "source modelsim.tcl; vsim tb_cpu; runq -a; quit;"`;
+   my $vsim_out = `vsim -c -do "source modelsim.tcl; vsim tb_cpu; run -a; quit;"`;
 
    $vsim_out =~ m/# Halted, cycles=(\d+)/;
 
