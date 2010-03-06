@@ -6,6 +6,7 @@ use work.cpu_pkg.all;
 use work.alu_pkg.all;
 use work.regfile_pkg.all;
 use work.ctrl_pkg.all;
+use work.pc_calc_pkg.all;
 use work.hazard_pkg.all;
 
 library ieee;
@@ -26,14 +27,17 @@ end;
 architecture structural of cpu_r is
 
 
-   signal alu_in  : alu_in_type;
-   signal alu_out : alu_out_type;
+   signal alu_in        : alu_in_type;
+   signal alu_out       : alu_out_type;
 
-   signal reg_in  : regfile_in_type;
-   signal reg_out : regfile_out_type;
+   signal reg_in        : regfile_in_type;
+   signal reg_out       : regfile_out_type;
 
-   signal ctrl_in    : ctrl_in_type;
-   signal ctrl_out   : ctrl_out_type;
+   signal ctrl_in       : ctrl_in_type;
+   signal ctrl_out      : ctrl_out_type;
+   
+   signal pc_calc_in    : pc_calc_in_type;
+   signal pc_calc_out   : pc_calc_out_type;
 
    signal imem_addr     : address;
    signal imem_dat      : word;
@@ -96,7 +100,7 @@ begin
       end if;
    end process;
 
-   pc_in <= pc + 4;
+   pc_in <= pc + 4 when pc_calc_out.branch = '0' else pc_calc_out.pc;
 
    process(mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
    begin
@@ -114,13 +118,13 @@ begin
 
    
    -- instruction memory (from vmem)
-   imem_addr <= pc;
-   imem_dat <= mem_rdat;
+   imem_addr   <= pc;
+   imem_dat    <= mem_rdat;
 
 
    -- feed the IF/ID pipeline registers
    if_id_reg_in.ins     <= imem_dat;
-   if_id_reg_in.pc_next <= pc + 4;
+   if_id_reg_in.pc_inc  <= pc + 4;
 
 
 
@@ -153,22 +157,43 @@ begin
 
    reg_in.rsel1   <= r_ins.rs;
    reg_in.rsel2   <= r_ins.rt;
-   reg_in.wen     <= mem_wb_reg.wb_ctrl.reg_write;
-   -- JAL not supported!
-   reg_in.wsel    <= mem_wb_reg.reg_dst;
+   process(mem_wb_reg, r_ins, hazard_out.stall, pc_calc_out.branch)
+   begin
+      if r_ins.op /= jal_op then
+         reg_in.wen  <= mem_wb_reg.wb_ctrl.reg_write;
+         reg_in.wsel <= mem_wb_reg.reg_dst;
+      elsif pc_calc_out.branch = '1' and hazard_out.stall = '0' then
+         reg_in.wen  <= '1';
+         reg_in.wsel <= 31;
+      else
+         reg_in.wen  <= mem_wb_reg.wb_ctrl.reg_write;
+         reg_in.wsel <= mem_wb_reg.reg_dst;
+      end if;
+   end process;
 
 
    -- this process selects which value is written to the regfile
    -- warning, no longer supports JAL instructions
-   reg_write_mux : process(mem_wb_reg)
+   reg_write_mux : process(mem_wb_reg, r_ins.op, if_id_reg.pc_inc, hazard_out, pc_calc_out)
       variable r : word;
    begin
-      case mem_wb_reg.wb_ctrl.reg_src is
-         when mem_reg_src  => r := mem_wb_reg.lw_res;
-         when alu_reg_src  => r := mem_wb_reg.alu_res;
-         -- JAL not supported!
-         when pc_reg_src   => r := x"DEADBEEF";
-      end case;
+      if r_ins.op /= jal_op then
+         case mem_wb_reg.wb_ctrl.reg_src is
+            when mem_reg_src  => r := mem_wb_reg.lw_res;
+            when alu_reg_src  => r := mem_wb_reg.alu_res;
+            -- this is meaningless now
+            when pc_reg_src   => r := x"DEADBEEF";
+         end case;
+      elsif pc_calc_out.branch = '1' and hazard_out.stall = '0' then
+         r := if_id_reg.pc_inc;
+      else
+         case mem_wb_reg.wb_ctrl.reg_src is
+            when mem_reg_src  => r := mem_wb_reg.lw_res;
+            when alu_reg_src  => r := mem_wb_reg.alu_res;
+            -- this is meaningless now
+            when pc_reg_src   => r := x"DEADBEEF";
+         end case;
+      end if;
 
       reg_in.wdat <= r;
    end process;
@@ -214,6 +239,17 @@ begin
    end process;
 
 
+   pc_calc_b : pc_calc_r port map (
+      d => pc_calc_in, q => pc_calc_out
+   );
+
+   pc_calc_in.imm <= i_ins.imm;
+   pc_calc_in.j_addr <= j_ins.j_addr;
+   pc_calc_in.op <= r_ins.op;
+   pc_calc_in.func <= r_ins.func;
+   pc_calc_in.pc_inc <= pc;
+   pc_calc_in.rs <= reg_out.rdat1;
+   pc_calc_in.rt <= reg_out.rdat2;
 
 
    ---------------------------------------
@@ -288,11 +324,11 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
+   pipe_reg_proc : process(nrst, clk, mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, pc_calc_out.branch)
    begin
       if nrst = '0' then
          if_id_reg.ins <= to_word(0);
-         if_id_reg.pc_next <= to_word(0);
+         if_id_reg.pc_inc <= to_word(0);
          id_ex_reg.rdat1 <= to_word(0);
          id_ex_reg.rdat2 <= to_word(0);
          id_ex_reg.sa <= 0;
@@ -323,7 +359,12 @@ begin
          if mem_state = free_mem_state or mem_state = ready_mem_state then
             if r_ins.op /= halt_op and hazard_out.stall = '0' and
                (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
-               if_id_reg <= if_id_reg_in;
+                  if pc_calc_out.branch = '1' then
+                     if_id_reg.ins <= to_word(0);
+                     if_id_reg.ins <= to_word(0);
+                  else
+                     if_id_reg <= if_id_reg_in;
+                  end if;
             end if;
             id_ex_reg <= id_ex_reg_in;
             ex_mem_reg <= ex_mem_reg_in;

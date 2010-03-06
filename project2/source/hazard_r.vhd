@@ -29,7 +29,7 @@ begin
       q.stall <= '0';
 
       case d.r_ins.op is
-         when special_op =>
+         when special_op | beq_op | bne_op | sw_op =>
             t := d.r_ins.rt;
             if t /= 0 then
                if t = d.ex_dst or t = d.mem_dst or t = d.wb_dst then
@@ -41,6 +41,12 @@ begin
                if t = d.ex_dst or t = d.mem_dst or t = d.wb_dst then
                   q.stall <= '1';
                end if;
+            end if;
+         when jal_op =>
+            if d.ex_dst = 31 or d.mem_dst = 31 or d.wb_dst = 31 then
+               q.stall <= '1';
+            else
+               q.stall <= '0';
             end if;
          when others =>
             t := d.r_ins.rs;
