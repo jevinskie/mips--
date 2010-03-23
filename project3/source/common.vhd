@@ -433,7 +433,7 @@ package body common is
       variable tmp : natural := i;
       variable log : natural := 0;
    begin
-      while (tmp > 0) loop
+      while (tmp > 1) loop
          tmp := tmp / 2;
          log := log + 1;
       end loop;

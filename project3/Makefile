@@ -42,6 +42,15 @@ icache_p.vhd : common.vhd
 icache_r.vhd : common.vhd icache_p.vhd
 icache_tb.vhd : common.vhd common_tb.vhd icache_r.vhd
 
+dcache_p.vhd : common.vhd
+dcache_r.vhd : common.vhd dcache_p.vhd reduce_pack.vhd
+dcache_tb.vhd : common.vhd common_tb.vhd dcache_r.vhd varb_r.vhd
+
+varb_p.vhd : common.vhd
+varb_r.vhd : common.vhd varb_p.vhd
+varb_tb.vhd : common.vhd common_tb.vhd varb_r.vhd
+
+
 vram.vhd : ram.vhd
 
 ctrl_p.vhd : common.vhd

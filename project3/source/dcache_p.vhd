@@ -13,13 +13,16 @@ package dcache_pkg is
    
    type dcache_mem_in_type is record
       rdat  : word;
+      done  : std_logic;
       -- need mem state?
    end record;
 
    type dcache_cpu_in_type is record
       addr  : address;
+      wdat  : word;
       ren   : std_logic;
       wen   : std_logic;
+      halt  : std_logic;
    end record;
 
    type dcache_in_type is record
@@ -37,6 +40,7 @@ package dcache_pkg is
    type dcache_cpu_out_type is record
       rdat  : word;
       hit   : std_logic;
+      halt  : std_logic;
    end record;
 
    type dcache_out_type is record
