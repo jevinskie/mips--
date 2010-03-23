@@ -83,7 +83,7 @@ begin
       --end loop;
       --dcache_in.cpu.ren <= '0';
 
-      -- fill the first 64 words with 0-63
+      -- fill the first 32 words with 0-31
       dcache_in.cpu.wen <= '1';
       for i in 0 to 31 loop
          dcache_in.cpu.addr <= to_word(i*4);
@@ -101,8 +101,47 @@ begin
       end loop;
       dcache_in.cpu.wen <= '0';
 
-      -- read out and make sure 0-63 were written
+      -- read out the first 32 words and make sure 0-31 were written
       -- there should be no cache misses
+      dcache_in.cpu.ren <= '1';
+      for i in 0 to 31 loop
+         dcache_in.cpu.addr <= to_word(i*4);
+         -- wait a cycle
+         wait until falling_edge(clk);
+         -- see if we have a hit
+         if dcache_out.cpu.hit = '0' then
+            -- we didnt, so wait for the hit
+            wait until dcache_out.cpu.hit = '1';
+            -- and advance to the falling edge
+            wait until falling_edge(clk);
+         end if;
+         assert dcache_out.cpu.rdat = to_word(i);
+         tick(clk, 1);
+      end loop;
+      dcache_in.cpu.ren <= '0';
+
+      
+      -- read out the second set of 32 words
+      -- every entry in the cache should be written back before being replaced
+      dcache_in.cpu.ren <= '1';
+      for i in 32 to 63 loop
+         dcache_in.cpu.addr <= to_word(i*4);
+         -- wait a cycle
+         wait until falling_edge(clk);
+         -- see if we have a hit
+         if dcache_out.cpu.hit = '0' then
+            -- we didnt, so wait for the hit
+            wait until dcache_out.cpu.hit = '1';
+            -- and advance to the falling edge
+            wait until falling_edge(clk);
+         end if;
+         assert dcache_out.cpu.rdat = to_word(i*4);
+         tick(clk, 1);
+      end loop;
+      dcache_in.cpu.ren <= '0';
+
+
+      -- read out the first 32 words and make sure 0-31 were written back to memory
       dcache_in.cpu.ren <= '1';
       for i in 0 to 31 loop
          dcache_in.cpu.addr <= to_word(i*4);
