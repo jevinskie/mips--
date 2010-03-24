@@ -85,7 +85,7 @@ begin
 
       -- fill the first 32 words with 0-31
       dcache_in.cpu.wen <= '1';
-      for i in 0 to 31 loop
+      for i in 0 to 63 loop
          dcache_in.cpu.addr <= to_word(i*4);
          dcache_in.cpu.wdat <= to_word(i);
          -- wait a cycle
@@ -104,7 +104,7 @@ begin
       -- read out the first 32 words and make sure 0-31 were written
       -- there should be no cache misses
       dcache_in.cpu.ren <= '1';
-      for i in 0 to 31 loop
+      for i in 0 to 63 loop
          dcache_in.cpu.addr <= to_word(i*4);
          -- wait a cycle
          wait until falling_edge(clk);
@@ -124,7 +124,7 @@ begin
       -- read out the second set of 32 words
       -- every entry in the cache should be written back before being replaced
       dcache_in.cpu.ren <= '1';
-      for i in 32 to 63 loop
+      for i in 64 to 128 loop
          dcache_in.cpu.addr <= to_word(i*4);
          -- wait a cycle
          wait until falling_edge(clk);
@@ -143,7 +143,7 @@ begin
 
       -- read out the first 32 words and make sure 0-31 were written back to memory
       dcache_in.cpu.ren <= '1';
-      for i in 0 to 31 loop
+      for i in 0 to 63 loop
          dcache_in.cpu.addr <= to_word(i*4);
          -- wait a cycle
          wait until falling_edge(clk);

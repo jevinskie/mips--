@@ -59,11 +59,11 @@ architecture twoproc of dcache_r is
    type cache_reg_type is record
       state    : cache_state_type;
       counter  : unsigned(0 downto 0);
-      evicting : std_logic;
    end record;
 
    type reg_type is record
       ways  : set_type;
+      lru   : std_logic_vector(way_type'range);
       cache : cache_reg_type;
    end record;
 
@@ -80,6 +80,7 @@ begin
       variable hits        : unsigned(1 downto 0);
       variable hit         : std_logic;
       variable hit_way     : integer;
+      variable evict_way   : integer;
    begin
       -- default assignment
       v := r;
@@ -90,6 +91,12 @@ begin
       index := to_integer(d.cpu.addr(6 downto 3));
       wanted_tag := d.cpu.addr(31 downto 7);
       block_off := to_integer(d.cpu.addr(2 downto 2));
+
+      if r.lru(index) = '0' then
+         evict_way := 1;
+      else
+         evict_way := 0;
+      end if;
 
       for i in r.ways'range loop
          if wanted_tag = r.ways(i)(index).tag and r.ways(i)(index).valid = '1' then
@@ -102,12 +109,21 @@ begin
       hit := or_reduce(hits);
       hit_way := binlog_zero(to_integer(hits));
 
+      if d.cpu.ren = '1' and hit = '1' then
+         if hits(0) = '0' then
+            v.lru(index) := '1';
+         else
+            v.lru(index) := '0';
+         end if;
+      end if;
+
       -- cache FSM next state logic
       case r.cache.state is
          when cache_idle =>
             if d.cpu.ren = '1' then
+               
                if hit = '0' then
-                  if v.ways(0)(index).valid = '1' and v.ways(0)(index).dirty = '1' then
+                  if v.ways(evict_way)(index).valid = '1' and v.ways(evict_way)(index).dirty = '1' then
                      -- must evict the old block
                      v.cache.state := cache_write;
                   else
@@ -120,7 +136,7 @@ begin
             elsif d.cpu.wen = '1' then
                if hit = '0' then
                   -- must pull in and write
-                  if v.ways(0)(index).valid = '1' and v.ways(0)(index).dirty = '1' then
+                  if v.ways(evict_way)(index).valid = '1' and v.ways(evict_way)(index).dirty = '1' then
                      -- must evict the old block
                      v.cache.state := cache_write;
                   else
@@ -129,8 +145,8 @@ begin
                   end if;
                else
                   -- the block is already in the cache, write to it and set dirty bit
-                  v.ways(0)(index).words(block_off) := d.cpu.wdat;
-                  v.ways(0)(index).dirty := '1';
+                  v.ways(evict_way)(index).words(block_off) := d.cpu.wdat;
+                  v.ways(evict_way)(index).dirty := '1';
                end if;
             end if;
 
@@ -139,10 +155,10 @@ begin
             if d.mem.done = '1' then
                -- the memory has finished its operation, we can proceed
                v.cache.counter := r.cache.counter + 1;
-               v.ways(0)(index).words(to_integer(r.cache.counter)) := d.mem.rdat;
-               v.ways(0)(index).tag := wanted_tag;
+               v.ways(evict_way)(index).words(to_integer(r.cache.counter)) := d.mem.rdat;
+               v.ways(evict_way)(index).tag := wanted_tag;
                -- the cache line is invalid during an update
-               v.ways(0)(index).valid := '0';
+               v.ways(evict_way)(index).valid := '0';
 
                if r.cache.counter = 1 then
                   -- this is the last word in the block, leave the read state
@@ -150,7 +166,7 @@ begin
                   -- reset the counter for the next user
                   v.cache.counter := (others => '0');
                   -- block is now valid
-                  v.ways(0)(index).valid := '1';
+                  v.ways(evict_way)(index).valid := '1';
                end if;
             end if;
 
@@ -166,7 +182,7 @@ begin
                   -- reset the counter for the next user
                   v.cache.counter := (others => '0');
                   -- block is no longer dirty
-                  v.ways(0)(index).dirty := '0';
+                  v.ways(evict_way)(index).dirty := '0';
                end if;
             end if;               
 
@@ -184,7 +200,7 @@ begin
       q.cpu.rdat <= r.ways(hit_way)(index).words(block_off);
 
       -- always output the wdat, even if the cpu is reading
-      q.mem.wdat <= v.ways(0)(index).words(to_integer(r.cache.counter));
+      q.mem.wdat <= v.ways(evict_way)(index).words(to_integer(r.cache.counter));
 
       q.mem.addr <= x"FEEDF00D";
       q.mem.ren <= '0';
@@ -199,7 +215,7 @@ begin
             q.mem.addr <= d.cpu.addr + resize(r.cache.counter, 3) * 4;
          when cache_write =>
             q.mem.wen <= '1';
-            q.mem.addr <= v.ways(0)(index).tag & d.cpu.addr(6 downto 3) & "000" + resize(r.cache.counter, 3) * 4;
+            q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & "000" + resize(r.cache.counter, 3) * 4;
          when others =>
             -- default assignments are fine
       end case;
@@ -226,11 +242,13 @@ begin
             end loop;
          end loop;
 
+         -- reset the lru bits
+         r.lru <= (others => '0');
+
          -- reset the state machines
          -- cache FSM
          r.cache.state <= cache_idle;
          r.cache.counter <= (others => '0');
-         r.cache.evicting <= '0';
 
       elsif rising_edge(clk) then
          r <= rin;
