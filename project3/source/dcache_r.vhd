@@ -54,11 +54,13 @@ architecture twoproc of dcache_r is
 
    type set_type is array (1 downto 0) of way_type;
 
-   type cache_state_type is (cache_idle, cache_read, cache_write, cache_flush, cache_halt);
+   type cache_state_type is (cache_idle, cache_read, cache_write, cache_halt);
 
    type cache_reg_type is record
-      state    : cache_state_type;
-      counter  : unsigned(0 downto 0);
+      state          : cache_state_type;
+      counter        : unsigned(0 downto 0);
+      line_counter   : integer;
+      way_counter    : integer;
    end record;
 
    type reg_type is record
@@ -92,10 +94,16 @@ begin
       wanted_tag := d.cpu.addr(31 downto 7);
       block_off := to_integer(d.cpu.addr(2 downto 2));
 
-      if r.lru(index) = '0' then
+      if r.ways(0)(index).valid = '0' then
+         evict_way := 0;
+      elsif r.ways(1)(index).valid = '0' then
          evict_way := 1;
       else
-         evict_way := 0;
+         if r.lru(index) = '0' then
+            evict_way := 0;
+         else
+            evict_way := 1;
+         end if;
       end if;
 
       for i in r.ways'range loop
@@ -109,10 +117,13 @@ begin
       hit := or_reduce(hits);
       hit_way := binlog_zero(to_integer(hits));
 
-      if d.cpu.ren = '1' and hit = '1' then
-         if hits(0) = '0' then
+      if (d.cpu.ren = '1' or d.cpu.wen = '1') and hit = '1' then
+         -- if the hit is on the 0th way
+         if hits(0) = '1' then
+            -- mark the 1th way as being the least recently used
             v.lru(index) := '1';
          else
+            -- the hit is on the 1th way, mark the 0th way as being the least recently used
             v.lru(index) := '0';
          end if;
       end if;
@@ -145,9 +156,11 @@ begin
                   end if;
                else
                   -- the block is already in the cache, write to it and set dirty bit
-                  v.ways(evict_way)(index).words(block_off) := d.cpu.wdat;
-                  v.ways(evict_way)(index).dirty := '1';
+                  v.ways(hit_way)(index).words(block_off) := d.cpu.wdat;
+                  v.ways(hit_way)(index).dirty := '1';
                end if;
+            elsif d.cpu.halt = '1' then
+               v.cache.state := cache_write;
             end if;
 
          when cache_read =>
@@ -178,13 +191,29 @@ begin
 
                if r.cache.counter = 1 then
                   -- this is the last word in the block, leave the read state
-                  v.cache.state := cache_idle;
+                  if d.cpu.halt = '0' then
+                     v.cache.state := cache_idle;
+                  else
+                     if r.cache.line_counter = 15 then
+                        v.cache.line_counter := 0;
+                        v.cache.way_counter := r.cache.way_counter + 1;
+                     else
+                        v.cache.line_counter := r.cache.line_counter + 1;
+                     end if;
+
+                     if r.cache.line_counter = 15 and r.cache.way_counter = 1 then
+                        v.cache.state := cache_halt;
+                     end if;
+                  end if;
                   -- reset the counter for the next user
                   v.cache.counter := (others => '0');
                   -- block is no longer dirty
                   v.ways(evict_way)(index).dirty := '0';
                end if;
-            end if;               
+            end if;
+
+         when cache_halt =>
+            -- do nothing, we're halted!
 
          when others =>
       end case;
@@ -206,16 +235,26 @@ begin
       q.mem.ren <= '0';
       q.mem.wen <= '0';
 
+      q.cpu.halt <= '0';
+
       -- cache FSM output logic
       case r.cache.state is
          when cache_idle =>
             -- default assignments are fine
          when cache_read =>
             q.mem.ren <= '1';
-            q.mem.addr <= d.cpu.addr + resize(r.cache.counter, 3) * 4;
+            q.mem.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
          when cache_write =>
             q.mem.wen <= '1';
-            q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & "000" + resize(r.cache.counter, 3) * 4;
+            if d.cpu.halt = '0' then
+               q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
+            else
+               q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & to_unsigned(r.cache.way_counter, 1) & "00";
+               q.mem.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
+            end if;
+
+         when cache_halt =>
+            q.cpu.halt <= '1';
          when others =>
             -- default assignments are fine
       end case;
@@ -249,6 +288,8 @@ begin
          -- cache FSM
          r.cache.state <= cache_idle;
          r.cache.counter <= (others => '0');
+         r.cache.way_counter <= 0;
+         r.cache.line_counter <= 0;
 
       elsif rising_edge(clk) then
          r <= rin;

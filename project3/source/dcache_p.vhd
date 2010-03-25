@@ -14,7 +14,6 @@ package dcache_pkg is
    type dcache_mem_in_type is record
       rdat  : word;
       done  : std_logic;
-      -- need mem state?
    end record;
 
    type dcache_cpu_in_type is record
