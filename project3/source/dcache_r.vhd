@@ -54,7 +54,7 @@ architecture twoproc of dcache_r is
 
    type set_type is array (1 downto 0) of way_type;
 
-   type cache_state_type is (cache_idle, cache_read, cache_write, cache_halt);
+   type cache_state_type is (cache_idle, cache_read, cache_write, cache_flush, cache_flush_write, cache_halt);
 
    type cache_reg_type is record
       state          : cache_state_type;
@@ -160,7 +160,7 @@ begin
                   v.ways(hit_way)(index).dirty := '1';
                end if;
             elsif d.cpu.halt = '1' then
-               v.cache.state := cache_write;
+               v.cache.state := cache_flush;
             end if;
 
          when cache_read =>
@@ -191,28 +191,64 @@ begin
 
                if r.cache.counter = 1 then
                   -- this is the last word in the block, leave the read state
-                  if d.cpu.halt = '0' then
-                     v.cache.state := cache_idle;
-                  else
-                     if r.cache.line_counter = 15 then
-                        v.cache.line_counter := 0;
-                        if r.cache.way_counter = 0 then
-                           v.cache.way_counter := r.cache.way_counter + 1;
-                        else
-                           v.cache.way_counter := 0;
-                        end if;
-                     else
-                        v.cache.line_counter := r.cache.line_counter + 1;
-                     end if;
-
-                     if r.cache.line_counter = 15 and r.cache.way_counter = 1 then
-                        v.cache.state := cache_halt;
-                     end if;
-                  end if;
-                  -- reset the counter for the next user
+                  v.cache.state := cache_idle;
+                  -- reset counter for next user
                   v.cache.counter := (others => '0');
                   -- block is no longer dirty
                   v.ways(evict_way)(index).dirty := '0';
+               end if;
+            end if;
+
+         when cache_flush =>
+            if  v.ways(r.cache.way_counter)(r.cache.line_counter).valid = '1' and
+                v.ways(r.cache.way_counter)(r.cache.line_counter).dirty = '1' then
+               v.cache.state := cache_flush_write;
+            else
+               if r.cache.line_counter = 15 then
+                  v.cache.line_counter := 0;
+                  if r.cache.way_counter = 1 then
+                     v.cache.way_counter := 0;
+                  else
+                     v.cache.way_counter := r.cache.way_counter + 1;
+                  end if;
+               else
+                  v.cache.line_counter := r.cache.line_counter + 1;
+               end if;
+
+               if r.cache.line_counter = 15 and r.cache.way_counter = 1 then
+                  v.cache.state := cache_halt;
+               else
+                  v.cache.state := cache_flush;
+               end if;
+            end if;
+
+         when cache_flush_write =>
+            -- if the memory isnt done with the current operation, do nothing
+            if d.mem.done = '1' then
+
+               -- the memory has finished its operation, we can proceed
+               v.cache.counter := r.cache.counter + 1;
+
+               if r.cache.counter = 1 then
+                  -- this is the last word in the block, leave the read state
+                  v.cache.counter := (others => '0');
+
+                  if r.cache.line_counter = 15 then
+                     v.cache.line_counter := 0;
+                     if r.cache.way_counter = 1 then
+                        v.cache.way_counter := 0;
+                     else
+                        v.cache.way_counter := r.cache.way_counter + 1;
+                     end if;
+                  else
+                     v.cache.line_counter := r.cache.line_counter + 1;
+                  end if;
+
+                  if r.cache.line_counter = 15 and r.cache.way_counter = 1 then
+                     v.cache.state := cache_halt;
+                  else
+                     v.cache.state := cache_flush;
+                  end if;
                end if;
             end if;
 
@@ -250,15 +286,19 @@ begin
             q.mem.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
          when cache_write =>
             q.mem.wen <= '1';
-            if d.cpu.halt = '0' then
-               q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
-            else
-               q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & r.cache.counter & "00";
-               q.mem.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
-            end if;
+            q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
+
+         when cache_flush =>
+            -- defaults are fine
+
+         when cache_flush_write =>
+            q.mem.wen <= '1';
+            q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & r.cache.counter & "00";
+            q.mem.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
 
          when cache_halt =>
             q.cpu.halt <= '1';
+
          when others =>
             -- default assignments are fine
       end case;

@@ -117,7 +117,7 @@ begin
 
    pc_in <= pc + 4 when pc_calc_out.branch = '0' else pc_calc_out.pc;
 
-   process(r_ins.op, hazard_out.stall, icache_out.cpu.hit)
+   process(r_ins.op, hazard_out.stall, icache_out.cpu.hit, ex_mem_reg.mem_ctrl)
    begin
       if r_ins.op /= halt_op and hazard_out.stall = '0' then
          if icache_out.cpu.hit = '1' and (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
@@ -331,10 +331,12 @@ begin
    );
 
    dcache_in.cpu.addr <= dmem_addr;
+   dcache_in.cpu.wdat <= dmem_wdat;
    dcache_in.cpu.wen  <= dmem_wen;
    dcache_in.cpu.ren  <= dmem_ren;
    dcache_in.cpu.halt <= mem_wb_reg.halt;
    dcache_in.mem.done <= arb_d_done;
+   dcache_in.mem.rdat <= mem_rdat;
    
    dmem_addr <= ex_mem_reg.alu_res;
    dmem_rdat <= dcache_out.cpu.rdat;
