@@ -40,7 +40,7 @@ cpuTest.vhd : cpu.vhd bintohexDecoder.vhd
 
 icache_p.vhd : common.vhd
 icache_r.vhd : common.vhd icache_p.vhd
-icache_tb.vhd : common.vhd common_tb.vhd icache_r.vhd
+icache_tb.vhd : common.vhd common_tb.vhd icache_r.vhd varb_r.vhd
 
 dcache_p.vhd : common.vhd
 dcache_r.vhd : common.vhd dcache_p.vhd reduce_pack.vhd

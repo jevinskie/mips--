@@ -13,6 +13,7 @@ package icache_pkg is
    
    type icache_mem_in_type is record
       dat   : word;
+      done  : std_logic;
    end record;
 
    type icache_cpu_in_type is record
@@ -27,6 +28,7 @@ package icache_pkg is
 
    type icache_mem_out_type is record
       addr : address;
+      ren  : std_logic;
    end record;
 
    type icache_cpu_out_type is record

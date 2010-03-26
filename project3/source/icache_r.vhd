@@ -52,7 +52,7 @@ begin
       end if;
 
 
-      if d.cpu.ren = '1' and hit = '0' then
+      if d.cpu.ren = '1' and hit = '0' and d.mem.done = '1' then
          v(index).v := '1';
          v(index).tag := wanted_tag;
          v(index).data := d.mem.dat;
@@ -62,6 +62,7 @@ begin
       rin <= v;
 
       -- drive module outputs
+      q.mem.ren <= not hit;
       q.cpu.hit <= hit;
       q.cpu.dat <= v(index).data;
    end process;
