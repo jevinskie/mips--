@@ -59,8 +59,8 @@ architecture twoproc of dcache_r is
    type cache_reg_type is record
       state          : cache_state_type;
       counter        : unsigned(0 downto 0);
-      line_counter   : integer;
-      way_counter    : integer;
+      line_counter   : integer range 0 to 15;
+      way_counter    : integer range 0 to 1;
    end record;
 
    type reg_type is record
@@ -76,13 +76,13 @@ begin
    -- combinatiorial process
    comb : process(d, r)
       variable v           : reg_type;
-      variable index       : integer;
-      variable block_off   : integer;
+      variable index       : integer range 0 to 15;
+      variable block_off   : integer range 0 to 1;
       variable wanted_tag  : tag_type;
       variable hits        : unsigned(1 downto 0);
       variable hit         : std_logic;
-      variable hit_way     : integer;
-      variable evict_way   : integer;
+      variable hit_way     : integer range 0 to 1;
+      variable evict_way   : integer range 0 to 1;
    begin
       -- default assignment
       v := r;
@@ -196,7 +196,11 @@ begin
                   else
                      if r.cache.line_counter = 15 then
                         v.cache.line_counter := 0;
-                        v.cache.way_counter := r.cache.way_counter + 1;
+                        if r.cache.way_counter = 0 then
+                           v.cache.way_counter := r.cache.way_counter + 1;
+                        else
+                           v.cache.way_counter := 0;
+                        end if;
                      else
                         v.cache.line_counter := r.cache.line_counter + 1;
                      end if;
@@ -249,7 +253,7 @@ begin
             if d.cpu.halt = '0' then
                q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
             else
-               q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & to_unsigned(r.cache.way_counter, 1) & "00";
+               q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & r.cache.counter & "00";
                q.mem.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
             end if;
 
