@@ -207,6 +207,68 @@ begin
       end loop;
 
 
+      -- test to make sure the cache doesn't write out invalid blocks during
+      -- cpu halt
+
+      test_num <= test_num + 1;
+
+      -- reset
+      dcache_in.cpu.halt <= '0';
+      nrst <= '0';
+      tick(clk, 1);
+      nrst <= '1';
+
+      -- try reading just one block
+      dcache_in.cpu.ren <= '1';
+      dcache_in.cpu.addr <= to_word(0);
+      -- wait a cycle
+      wait until falling_edge(clk);
+      -- see if we have a hit
+      if dcache_out.cpu.hit = '0' then
+         -- we didnt, so wait for the hit
+         wait until dcache_out.cpu.hit = '1';
+         -- and advance to the falling edge
+         wait until falling_edge(clk);
+      end if;
+      assert dcache_out.cpu.rdat = to_word(0);
+      tick(clk, 1);
+      dcache_in.cpu.ren <= '0';
+
+
+      dcache_in.cpu.wen <= '1';
+      dcache_in.cpu.addr <= to_word(0);
+      dcache_in.cpu.wdat <= to_word(243);
+      -- wait a cycle
+      wait until falling_edge(clk);
+      -- see if we have a hit
+      if dcache_out.cpu.hit = '0' then
+         -- we didnt, so wait for the hit
+         wait until dcache_out.cpu.hit = '1';
+         -- and advance to the falling edge
+         wait until falling_edge(clk);
+      end if;
+      tick(clk, 1);
+      dcache_in.cpu.wen <= '0';
+
+      dcache_in.cpu.halt <= '1';
+
+
+      -- wait for the cache to flush
+      wait until dcache_out.cpu.halt = '1';
+      varb_addr_halt <= to_word(0);
+      wait until falling_edge(clk);
+
+
+      for i in 0 to 63 loop
+         varb_addr_halt <= to_word(i*4);
+         wait until varb_out.done = '1';
+         if i /= 0 then
+            assert varb_out.rdat = to_word(i*4);
+         else
+            assert varb_out.rdat = to_word(243);
+         end if;
+      end loop;
+
       -- stop the clock
       stop <= '1';
       tick(clk, 1);
