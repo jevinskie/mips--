@@ -9,6 +9,7 @@ use work.ctrl_pkg.all;
 use work.pc_calc_pkg.all;
 use work.hazard_pkg.all;
 use work.icache_pkg.all;
+use work.dcache_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -47,6 +48,7 @@ architecture structural of cpu_r is
    signal dmem_rdat     : word;
    signal dmem_wdat     : word;
    signal dmem_wen      : std_logic;
+   signal dmem_ren      : std_logic;
 
    signal r_ins : r_type;
    signal j_ins : j_type;
@@ -71,9 +73,17 @@ architecture structural of cpu_r is
    signal mem_state_slv : std_logic_vector(1 downto 0);
    signal mem_state     : mem_state_type;
 
+   -- arbiter signals
+   signal arb_d_done    : std_logic;
+   signal arb_i_done    : std_logic;
+
    -- instruction cache signals
    signal icache_in  : icache_in_type;
    signal icache_out : icache_out_type;
+
+   -- data cache signals
+   signal dcache_in  : dcache_in_type;
+   signal dcache_out : dcache_out_type;
 
    -- pc signals
    signal pc, pc_in  : address;
@@ -107,11 +117,10 @@ begin
 
    pc_in <= pc + 4 when pc_calc_out.branch = '0' else pc_calc_out.pc;
 
-   process(mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl)
+   process(r_ins.op, hazard_out.stall, icache_out.cpu.hit)
    begin
       if r_ins.op /= halt_op and hazard_out.stall = '0' then
-         if (mem_state = free_mem_state or mem_state = ready_mem_state)
-            and (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
+         if icache_out.cpu.hit = '1' and (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
             pc_wen <= '1';
          else
             pc_wen <= '0';
@@ -128,9 +137,9 @@ begin
    );
    
    icache_in.cpu.addr <= imem_addr;
-   icache_in.cpu.ren <= '1' when (mem_state = free_mem_state or mem_state = ready_mem_state)
-                        and (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') else '0';
+   icache_in.cpu.ren <= '1';
    icache_in.mem.dat <= mem_rdat;
+   icache_in.mem.done <= arb_i_done;
 
    -- instruction memory
    imem_addr   <= pc;
@@ -315,11 +324,23 @@ begin
    ---------------------------------------
 
 
-   -- data memory (from vmem)
+   -- data memory (from dcache)
+
+   dcache_b : dcache_r port map (
+      clk => clk, nrst => nrst, d => dcache_in, q => dcache_out
+   );
+
+   dcache_in.cpu.addr <= dmem_addr;
+   dcache_in.cpu.wen  <= dmem_wen;
+   dcache_in.cpu.ren  <= dmem_ren;
+   dcache_in.cpu.halt <= mem_wb_reg.halt;
+   dcache_in.mem.done <= arb_d_done;
+   
    dmem_addr <= ex_mem_reg.alu_res;
-   dmem_rdat <= mem_rdat;
+   dmem_rdat <= dcache_out.cpu.rdat;
    dmem_wdat <= ex_mem_reg.rdat2;
    dmem_wen  <= ex_mem_reg.mem_ctrl.mem_write;
+   dmem_ren  <= ex_mem_reg.mem_ctrl.mem_read;
 
    -- feed the MEM/WB pipeline register inputs
    mem_wb_reg_in.alu_res   <= ex_mem_reg.alu_res;
@@ -339,7 +360,7 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, mem_state, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, pc_calc_out.branch)
+   pipe_reg_proc : process(nrst, clk, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, dcache_out.cpu.hit, icache_out.cpu.hit, dcache_in.cpu, pc_calc_out.branch)
    begin
       if nrst = '0' then
          if_id_reg.ins <= to_word(0);
@@ -371,11 +392,16 @@ begin
          mem_wb_reg.wb_ctrl.reg_write <= '0';
          mem_wb_reg.halt <= '0';
       elsif rising_edge(clk) then
-         if mem_state = free_mem_state or mem_state = ready_mem_state then
+         -- clock if we have all the data we need
+         -- we always need the icache data
+         -- we only need the dcache data if its a read or write
+         --if true then
+         if icache_out.cpu.hit = '1' and
+            ((dcache_out.cpu.hit = '1' and (dcache_in.cpu.ren = '1' or dcache_in.cpu.wen = '1')) or
+             (dcache_in.cpu.ren = '0' and dcache_in.cpu.wen = '0')) then
             if r_ins.op /= halt_op and hazard_out.stall = '0' and
                (ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0') then
                   if pc_calc_out.branch = '1' then
-                     if_id_reg.ins <= to_word(0);
                      if_id_reg.ins <= to_word(0);
                   else
                      if_id_reg <= if_id_reg_in;
@@ -425,25 +451,37 @@ begin
    );
 
    mem_rdat <= unsigned(mem_rdat_slv);
-   mem_wdat <= ex_mem_reg.rdat2;
+   mem_wdat <= dcache_out.mem.wdat;
    mem_state <= to_mem_state(mem_state_slv);
-   mem_halt <= mem_wb_reg.halt;
+   mem_halt <= dcache_out.cpu.halt;
 
-   process(icache_out.mem.addr, ex_mem_reg, d.dump_addr, mem_wb_reg.halt)
+   process(icache_out, ex_mem_reg, d.dump_addr, dcache_out, mem_state)
    begin
-      if mem_wb_reg.halt = '0' then
-         if ex_mem_reg.mem_ctrl.mem_read = '0' and ex_mem_reg.mem_ctrl.mem_write = '0' then
-            mem_addr <= icache_out.mem.addr;
+      arb_i_done <= '0';
+      arb_d_done <= '0';
+
+      if dcache_out.cpu.halt = '0' then
+         if (dcache_out.mem.ren = '1' or dcache_out.mem.wen = '1') then
+            mem_ren <= dcache_out.mem.ren;
+            mem_wen <= dcache_out.mem.wen;
+            mem_addr <= dcache_out.mem.addr;
+            if mem_state = ready_mem_state then
+               arb_d_done <= '1';
+            end if;
          else
-            mem_addr <= ex_mem_reg.alu_res;
+            mem_ren <= icache_out.mem.ren;
+            mem_wen <= '0';
+            mem_addr <= icache_out.mem.addr;
+            if mem_state = ready_mem_state then
+               arb_i_done <= '1';
+            end if;
          end if;
       else
+         mem_ren <= '1';
+         mem_wen <= '0';
          mem_addr <= resize(d.dump_addr, address'length);
       end if;
    end process;
-
-   mem_ren <= '1' when mem_wb_reg.halt = '1' else not ex_mem_reg.mem_ctrl.mem_write;
-   mem_wen <= ex_mem_reg.mem_ctrl.mem_write;
 
 
 
@@ -454,7 +492,7 @@ begin
    ---------------------------------------
    ---------------------------------------
 
-   q.halt <= mem_wb_reg.halt;
+   q.halt <= dcache_out.cpu.halt;
    q.dmem_rdat <= mem_rdat;
    q.dmem_wdat <= mem_wdat;
    q.imem_dat <= mem_rdat;
