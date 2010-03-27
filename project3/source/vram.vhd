@@ -47,7 +47,7 @@ architecture vram_arch of vram is
 	-- if LATENCY is set to 0, then there will be no busy state and counter will not count, 
 	-- it will go straight to ready state and takes only one cycle to access the memory like lab4. 
 	-- also keep in mind that LATENCY conunter is 4 bits, do not change to some number beyond, like a million. :)
-	constant LATENCY	: std_logic_vector		:= x"3";
+	constant LATENCY	: std_logic_vector		:= x"0";
 	
 	-- when memory is in free or busy or error or reset state, this is the temperay output and also dummy output.
 	-- only when memory hits ready state, then your read or write will be completed. you can change this as well. 
