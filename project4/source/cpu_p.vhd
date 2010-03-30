@@ -25,6 +25,9 @@ package cpu_pkg is
    end record;
 
    component cpu_r
+      generic (
+         reset_vector : address := (others => '0')
+      );
       port (
          clk   : in std_logic;
          nrst  : in std_logic;

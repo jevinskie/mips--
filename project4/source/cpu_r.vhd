@@ -17,6 +17,9 @@ use ieee.numeric_std.all;
 
 
 entity cpu_r is
+   generic (
+      reset_vector : address := (others => '0')
+   );
    port (
       clk   : in std_logic;
       nrst  : in std_logic;
@@ -397,7 +400,6 @@ begin
          -- clock if we have all the data we need
          -- we always need the icache data
          -- we only need the dcache data if its a read or write
-         --if true then
          if icache_out.cpu.hit = '1' and
             ((dcache_out.cpu.hit = '1' and (dcache_in.cpu.ren = '1' or dcache_in.cpu.wen = '1')) or
              (dcache_in.cpu.ren = '0' and dcache_in.cpu.wen = '0')) then
