@@ -365,7 +365,7 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, dcache_out.cpu.hit, icache_out.cpu.hit, dcache_in.cpu, pc_calc_out.branch)
+   pipe_reg_proc : process(nrst, clk, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, dcache_out.cpu.hit, icache_out.cpu.hit, dcache_in.cpu.wen, dcache_in.cpu.ren, pc_calc_out.branch)
    begin
       if nrst = '0' then
          if_id_reg.ins <= to_word(0);
