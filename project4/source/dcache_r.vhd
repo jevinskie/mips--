@@ -165,10 +165,10 @@ begin
 
          when cache_read =>
             -- if the memory isnt done with the current operation, do nothing
-            if d.mem.done = '1' then
+            if d.cc.done = '1' then
                -- the memory has finished its operation, we can proceed
                v.cache.counter := r.cache.counter + 1;
-               v.ways(evict_way)(index).words(to_integer(r.cache.counter)) := d.mem.rdat;
+               v.ways(evict_way)(index).words(to_integer(r.cache.counter)) := d.cc.rdat;
                v.ways(evict_way)(index).tag := wanted_tag;
                -- the cache line is invalid during an update
                v.ways(evict_way)(index).valid := '0';
@@ -185,7 +185,7 @@ begin
 
          when cache_write =>
             -- if the memory isnt done with the current operation, do nothing
-            if d.mem.done = '1' then
+            if d.cc.done = '1' then
                -- the memory has finished its operation, we can proceed
                v.cache.counter := r.cache.counter + 1;
 
@@ -224,7 +224,7 @@ begin
 
          when cache_flush_write =>
             -- if the memory isnt done with the current operation, do nothing
-            if d.mem.done = '1' then
+            if d.cc.done = '1' then
 
                -- the memory has finished its operation, we can proceed
                v.cache.counter := r.cache.counter + 1;
@@ -269,11 +269,11 @@ begin
       q.cpu.rdat <= r.ways(hit_way)(index).words(block_off);
 
       -- always output the wdat, even if the cpu is reading
-      q.mem.wdat <= v.ways(evict_way)(index).words(to_integer(r.cache.counter));
+      q.cc.wdat <= v.ways(evict_way)(index).words(to_integer(r.cache.counter));
 
-      q.mem.addr <= x"FEEDF00D";
-      q.mem.ren <= '0';
-      q.mem.wen <= '0';
+      q.cc.addr <= x"FEEDF00D";
+      q.cc.ren <= '0';
+      q.cc.wen <= '0';
 
       q.cpu.halt <= '0';
 
@@ -282,19 +282,19 @@ begin
          when cache_idle =>
             -- default assignments are fine
          when cache_read =>
-            q.mem.ren <= '1';
-            q.mem.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
+            q.cc.ren <= '1';
+            q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
          when cache_write =>
-            q.mem.wen <= '1';
-            q.mem.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
+            q.cc.wen <= '1';
+            q.cc.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
 
          when cache_flush =>
             -- defaults are fine
 
          when cache_flush_write =>
-            q.mem.wen <= '1';
-            q.mem.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & r.cache.counter & "00";
-            q.mem.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
+            q.cc.wen <= '1';
+            q.cc.addr <= v.ways(r.cache.way_counter)(r.cache.line_counter).tag & to_unsigned(r.cache.line_counter, 4) & r.cache.counter & "00";
+            q.cc.wdat <= v.ways(r.cache.way_counter)(r.cache.line_counter).words(to_integer(r.cache.counter));
 
          when cache_halt =>
             q.cpu.halt <= '1';

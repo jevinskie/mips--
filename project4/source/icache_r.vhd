@@ -55,7 +55,7 @@ begin
       if d.cpu.ren = '1' and hit = '0' and d.mem.done = '1' then
          v(index).v := '1';
          v(index).tag := wanted_tag;
-         v(index).data := d.mem.dat;
+         v(index).data := d.mem.rdat;
       end if;
       
       -- drive the register inputs
@@ -64,7 +64,7 @@ begin
       -- drive module outputs
       q.mem.ren <= not hit;
       q.cpu.hit <= hit;
-      q.cpu.dat <= v(index).data;
+      q.cpu.rdat <= v(index).data;
    end process;
 
    q.mem.addr <= d.cpu.addr;

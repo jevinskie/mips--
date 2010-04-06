@@ -1,4 +1,4 @@
-use work.cpu_pkg.all;
+use work.dual_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -37,24 +37,24 @@ end cpu;
 
 architecture behavioral of cpu is
 
-   signal cpu_in  : cpu_in_type;
-   signal cpu_out : cpu_out_type;
+   signal dual_in  : dual_in_type;
+   signal dual_out : dual_out_type;
 
 begin
 
-	cpu_b : cpu_r port map (
+	dual_b : dual_r port map (
       clk => CLK, nrst => nReset,
-      d => cpu_in, q => cpu_out
+      d => dual_in, q => dual_out
    );
 
-   cpu_in.dump_addr <= unsigned(dumpAddr);
+   dual_in.dump_addr <= unsigned(dumpAddr);
 
-   imemAddr <= std_logic_vector(cpu_out.imem_addr);
-   imemData <= std_logic_vector(cpu_out.imem_dat);
-   dmemAddr <= std_logic_vector(cpu_out.dmem_addr);
-   dmemDataRead <= std_logic_vector(cpu_out.dmem_rdat);
-   dmemDataWrite <= std_logic_vector(cpu_out.dmem_wdat);
-   halt <= cpu_out.halt;
+   imemAddr <= std_logic_vector(dual_out.imem_addr);
+   imemData <= std_logic_vector(dual_out.imem_dat);
+   dmemAddr <= std_logic_vector(dual_out.dmem_addr);
+   dmemDataRead <= std_logic_vector(dual_out.dmem_rdat);
+   dmemDataWrite <= std_logic_vector(dual_out.dmem_wdat);
+   halt <= dual_out.halt;
 
    hexOut <= (others => '0');
 

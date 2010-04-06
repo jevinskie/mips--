@@ -2,6 +2,7 @@
 
 
 use work.common.all;
+use work.dual_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -12,7 +13,7 @@ use ieee.numeric_std.all;
 package icache_pkg is
    
    type icache_mem_in_type is record
-      dat   : word;
+      rdat   : word;
       done  : std_logic;
    end record;
 
@@ -32,7 +33,7 @@ package icache_pkg is
    end record;
 
    type icache_cpu_out_type is record
-      dat : word;
+      rdat : word;
       hit : std_logic;
    end record;
 

@@ -2,6 +2,8 @@
 
 
 use work.common.all;
+use work.icache_pkg.all;
+use work.dcache_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -12,16 +14,14 @@ use ieee.numeric_std.all;
 package cpu_pkg is
 
    type cpu_in_type is record
-      dump_addr   : dump_address;
+      icache   : icache_mem_in_type;
+      dcache   : dcache_cc_in_type;
    end record;
 
    type cpu_out_type is record
-      halt        : std_logic;
-      imem_addr   : address;
-      imem_dat    : word;
-      dmem_addr   : address;
-      dmem_rdat   : word;
-      dmem_wdat   : word;
+      icache   : icache_mem_out_type;
+      dcache   : dcache_cc_out_type;
+      halt     : std_logic;
    end record;
 
    component cpu_r

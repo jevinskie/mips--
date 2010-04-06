@@ -18,6 +18,7 @@ package arb_pkg is
 
    type arb_cc_in_type is record
       addr  : address;
+      wdat  : word;
       wen   : std_logic;
       ren   : std_logic;
    end record;
@@ -39,7 +40,6 @@ package arb_pkg is
       wdat  : word;
       ren   : std_logic;
       wen   : std_logic;
-      halt  : std_logic;
    end record;
 
    type arb_cc_out_type is record

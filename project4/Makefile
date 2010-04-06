@@ -32,9 +32,9 @@ pc_calc_r.vhd : common.vhd pc_calc_p.vhd
 hazard_p.vhd : common.vhd
 hazard_r.vhd : common.vhd hazard_p.vhd
 
-cpu.vhd : common.vhd cpu_p.vhd cpu_r.vhd
+cpu.vhd : common.vhd dual_p.vhd dual_r.vhd
 cpu_r.vhd : common.vhd common_pipe.vhd cpu_p.vhd alu_r.vhd regfile_r.vhd vram.vhd ctrl_r.vhd hazard_r.vhd pc_calc_r.vhd icache_r.vhd dcache_r.vhd
-cpu_p.vhd : common.vhd
+cpu_p.vhd : common.vhd dcache_p.vhd icache_p.vhd
 tb_cpu.vhd : cpu.vhd
 cpuTest.vhd : cpu.vhd bintohexDecoder.vhd
 
@@ -54,6 +54,12 @@ arb_p.vhd : common.vhd
 arb_r.vhd : common.vhd arb_p.vhd
 
 vram.vhd : ram.vhd
+
+cc_p.vhd : common.vhd
+cc_r.vhd : common.vhd cc_p.vhd
+
+dual_p.vhd : common.vhd
+dual_r.vhd : common.vhd dual_p.vhd arb_r.vhd cpu_r.vhd cc_r.vhd
 
 ctrl_p.vhd : common.vhd
 ctrl_r.vhd : common.vhd ctrl_p.vhd

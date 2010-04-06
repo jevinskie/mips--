@@ -65,21 +65,6 @@ architecture structural of cpu_r is
    signal ex_mem_reg, ex_mem_reg_in : ex_mem_reg_type;
    signal mem_wb_reg, mem_wb_reg_in : mem_wb_reg_type;
 
-   -- vmem signals
-   signal mem_addr      : address;
-   signal mem_wdat      : word;
-   signal mem_wen       : std_logic;
-   signal mem_ren       : std_logic;
-   signal mem_halt      : std_logic;
-   signal mem_rdat_slv  : word_slv;
-   signal mem_rdat      : word;
-   signal mem_state_slv : std_logic_vector(1 downto 0);
-   signal mem_state     : mem_state_type;
-
-   -- arbiter signals
-   signal arb_d_done    : std_logic;
-   signal arb_i_done    : std_logic;
-
    -- instruction cache signals
    signal icache_in  : icache_in_type;
    signal icache_out : icache_out_type;
@@ -110,7 +95,7 @@ begin
    pc_reg_proc : process(nrst, clk)
    begin
       if nrst = '0' then
-         pc <= (others => '0');
+         pc <= reset_vector;
       elsif rising_edge(clk) then
          if pc_wen = '1' then
             pc <= pc_in;
@@ -139,14 +124,13 @@ begin
       clk => clk, nrst => nrst, d => icache_in, q => icache_out
    );
    
-   icache_in.cpu.addr <= imem_addr;
-   icache_in.cpu.ren <= '1';
-   icache_in.mem.dat <= mem_rdat;
-   icache_in.mem.done <= arb_i_done;
+   icache_in.cpu.addr   <= imem_addr;
+   icache_in.cpu.ren    <= '1';
+   icache_in.mem        <= d.icache;
 
    -- instruction memory
    imem_addr   <= pc;
-   imem_dat    <= icache_out.cpu.dat;
+   imem_dat    <= icache_out.cpu.rdat;
 
 
    -- feed the IF/ID pipeline registers
@@ -333,13 +317,12 @@ begin
       clk => clk, nrst => nrst, d => dcache_in, q => dcache_out
    );
 
-   dcache_in.cpu.addr <= dmem_addr;
-   dcache_in.cpu.wdat <= dmem_wdat;
-   dcache_in.cpu.wen  <= dmem_wen;
-   dcache_in.cpu.ren  <= dmem_ren;
-   dcache_in.cpu.halt <= mem_wb_reg.halt;
-   dcache_in.mem.done <= arb_d_done;
-   dcache_in.mem.rdat <= mem_rdat;
+   dcache_in.cpu.addr   <= dmem_addr;
+   dcache_in.cpu.wdat   <= dmem_wdat;
+   dcache_in.cpu.wen    <= dmem_wen;
+   dcache_in.cpu.ren    <= dmem_ren;
+   dcache_in.cpu.halt   <= mem_wb_reg.halt;
+   dcache_in.cc         <= d.dcache;
    
    dmem_addr <= ex_mem_reg.alu_res;
    dmem_rdat <= dcache_out.cpu.rdat;
@@ -432,62 +415,10 @@ begin
       d => hazard_in, q => hazard_out
    );
 
-   hazard_in.r_ins <= r_ins;
-   hazard_in.ex_dst <= id_ex_reg.reg_dst;
+   hazard_in.r_ins   <= r_ins;
+   hazard_in.ex_dst  <= id_ex_reg.reg_dst;
    hazard_in.mem_dst <= ex_mem_reg.reg_dst;
-   hazard_in.wb_dst <= mem_wb_reg.reg_dst;
-
-
-   ---------------------------------------
-   ---------------------------------------
-   ---------      SYS MEMORY     ---------
-   ---------------------------------------
-   ---------------------------------------
-
-   -- main memory
-   mem_b : entity work.vram port map (
-      nReset => nrst, clock => clk,
-      address => std_logic_vector(mem_addr(15 downto 0)),
-      data => std_logic_vector(mem_wdat),
-      wren => mem_wen, rden => mem_ren,
-      halt => mem_halt, q => mem_rdat_slv,
-      memstate => mem_state_slv
-   );
-
-   mem_rdat <= unsigned(mem_rdat_slv);
-   mem_wdat <= dcache_out.mem.wdat;
-   mem_state <= to_mem_state(mem_state_slv);
-   mem_halt <= dcache_out.cpu.halt;
-
-   process(icache_out, ex_mem_reg, d.dump_addr, dcache_out, mem_state)
-   begin
-      arb_i_done <= '0';
-      arb_d_done <= '0';
-
-      if dcache_out.cpu.halt = '0' then
-         if (dcache_out.mem.ren = '1' or dcache_out.mem.wen = '1') then
-            mem_ren <= dcache_out.mem.ren;
-            mem_wen <= dcache_out.mem.wen;
-            mem_addr <= dcache_out.mem.addr;
-            if mem_state = ready_mem_state then
-               arb_d_done <= '1';
-            end if;
-         else
-            mem_ren <= icache_out.mem.ren;
-            mem_wen <= '0';
-            mem_addr <= icache_out.mem.addr;
-            if mem_state = ready_mem_state then
-               arb_i_done <= '1';
-            end if;
-         end if;
-      else
-         mem_ren <= '1';
-         mem_wen <= '0';
-         mem_addr <= resize(d.dump_addr, address'length);
-      end if;
-   end process;
-
-
+   hazard_in.wb_dst  <= mem_wb_reg.reg_dst;
 
 
    ---------------------------------------
@@ -496,13 +427,9 @@ begin
    ---------------------------------------
    ---------------------------------------
 
-   q.halt <= dcache_out.cpu.halt;
-   q.dmem_rdat <= mem_rdat;
-   q.dmem_wdat <= mem_wdat;
-   q.imem_dat <= mem_rdat;
-   q.dmem_addr <= mem_addr;
-   q.imem_addr <= mem_addr;
-
+   q.halt   <= dcache_out.cpu.halt;
+   q.dcache <= dcache_out.cc;
+   q.icache <= icache_out.mem;
 
 end;
 

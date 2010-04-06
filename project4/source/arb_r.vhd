@@ -89,6 +89,8 @@ begin
       q.mem.ren      <= '0';
       q.mem.wen      <= '0';
 
+      q.mem.wdat     <= d.cc.wdat;
+
       -- route the signals
       if winner = icache0_consumer then
          q.mem.ren      <= '1';
