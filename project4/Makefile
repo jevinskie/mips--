@@ -50,6 +50,8 @@ varb_p.vhd : common.vhd
 varb_r.vhd : common.vhd varb_p.vhd
 varb_tb.vhd : common.vhd common_tb.vhd varb_r.vhd
 
+arb_p.vhd : common.vhd
+arb_r.vhd : common.vhd arb_p.vhd
 
 vram.vhd : ram.vhd
 
