@@ -80,6 +80,18 @@ begin
       q.mem.ren      <= '0';
       q.mem.wen      <= '0';
 
+      -- snooping
+      q.dcache0.snp_addr   <= d.dcache1.addr;
+      q.dcache0.snp_ren    <= d.dcache1.ren;
+      q.dcache0.snp_rxen   <= d.dcache1.rxen;
+      q.dcache0.snp_wen    <= d.dcache1.wen;
+
+      q.dcache1.snp_addr   <= d.dcache0.addr;
+      q.dcache1.snp_ren    <= d.dcache0.ren;
+      q.dcache1.snp_rxen   <= d.dcache0.rxen;
+      q.dcache1.snp_wen    <= d.dcache0.wen;
+      
+
       -- route the signals
       if winner = dcache0_consumer then
          q.mem.addr     <= d.dcache0.addr;

@@ -12,39 +12,45 @@ use ieee.numeric_std.all;
 package dcache_pkg is
    
    type dcache_cc_in_type is record
-      rdat  : word;
-      done  : std_logic;
+      rdat     : word;
+      done     : std_logic;
+      snp_addr : address;
+      snp_ren  : std_logic;
+      snp_rxen : std_logic;
+      snp_wen  : std_logic;
    end record;
 
    type dcache_cpu_in_type is record
-      addr  : address;
-      wdat  : word;
-      ren   : std_logic;
-      wen   : std_logic;
-      halt  : std_logic;
+      addr     : address;
+      wdat     : word;
+      ren      : std_logic;
+      wen      : std_logic;
+      halt     : std_logic;
    end record;
 
    type dcache_in_type is record
-      cc    : dcache_cc_in_type;
-      cpu   : dcache_cpu_in_type;
+      cc       : dcache_cc_in_type;
+      cpu      : dcache_cpu_in_type;
    end record;
 
    type dcache_cc_out_type is record
-      addr  : address;
-      wdat  : word;
-      ren   : std_logic;
-      wen   : std_logic;
+      addr     : address;
+      wdat     : word;
+      ren      : std_logic;
+      rxen     : std_logic;
+      wen      : std_logic;
+      flush    : std_logic;
    end record;
 
    type dcache_cpu_out_type is record
-      rdat  : word;
-      hit   : std_logic;
-      halt  : std_logic;
+      rdat     : word;
+      hit      : std_logic;
+      halt     : std_logic;
    end record;
 
    type dcache_out_type is record
-      cc    : dcache_cc_out_type;
-      cpu   : dcache_cpu_out_type;
+      cc       : dcache_cc_out_type;
+      cpu      : dcache_cpu_out_type;
    end record;
 
    component dcache_r

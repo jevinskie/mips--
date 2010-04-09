@@ -106,21 +106,34 @@ begin
       clk => clk, nrst => nrst, d => cc_in, q => cc_out
    );
 
-   cc_in.dcache0.addr   <= core0_out.dcache.addr;
-   cc_in.dcache0.wdat   <= core0_out.dcache.wdat;
-   cc_in.dcache0.ren    <= core0_out.dcache.ren;
-   cc_in.dcache0.wen    <= core0_out.dcache.wen;
+   cc_in.dcache0.addr         <= core0_out.dcache.addr;
+   cc_in.dcache0.wdat         <= core0_out.dcache.wdat;
+   cc_in.dcache0.ren          <= core0_out.dcache.ren;
+   cc_in.dcache0.rxen         <= core0_out.dcache.rxen;
+   cc_in.dcache0.wen          <= core0_out.dcache.wen;
+   cc_in.dcache0.flush        <= core0_out.dcache.flush;
 
-   cc_in.dcache1.addr   <= core1_out.dcache.addr;
-   cc_in.dcache1.wdat   <= core1_out.dcache.wdat;
-   cc_in.dcache1.ren    <= core1_out.dcache.ren;
-   cc_in.dcache1.wen    <= core1_out.dcache.wen;
 
-   core0_in.dcache.rdat <= cc_out.dcache0.rdat;
-   core0_in.dcache.done <= cc_out.dcache0.done;
+   cc_in.dcache1.addr         <= core1_out.dcache.addr;
+   cc_in.dcache1.wdat         <= core1_out.dcache.wdat;
+   cc_in.dcache1.ren          <= core1_out.dcache.ren;
+   cc_in.dcache1.rxen         <= core1_out.dcache.rxen;
+   cc_in.dcache1.wen          <= core1_out.dcache.wen;
+   cc_in.dcache1.flush        <= core1_out.dcache.flush;
 
-   core1_in.dcache.rdat <= cc_out.dcache1.rdat;
-   core1_in.dcache.done <= cc_out.dcache1.done;
+   core0_in.dcache.rdat       <= cc_out.dcache0.rdat;
+   core0_in.dcache.done       <= cc_out.dcache0.done;
+   core0_in.dcache.snp_addr   <= cc_out.dcache0.snp_addr;
+   core0_in.dcache.snp_ren    <= cc_out.dcache0.snp_ren;
+   core0_in.dcache.snp_rxen   <= cc_out.dcache0.snp_rxen;
+   core0_in.dcache.snp_wen    <= cc_out.dcache0.snp_wen;
+
+   core1_in.dcache.rdat       <= cc_out.dcache1.rdat;
+   core1_in.dcache.done       <= cc_out.dcache1.done;
+   core1_in.dcache.snp_addr   <= cc_out.dcache1.snp_addr;
+   core1_in.dcache.snp_ren    <= cc_out.dcache1.snp_ren;
+   core1_in.dcache.snp_rxen   <= cc_out.dcache1.snp_rxen;
+   core1_in.dcache.snp_wen    <= cc_out.dcache1.snp_wen;
 
    -- core0
    core0_b : cpu_r generic map (

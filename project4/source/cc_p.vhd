@@ -20,7 +20,9 @@ package cc_pkg is
       addr     : address;
       wdat     : word;
       ren      : std_logic;
+      rxen     : std_logic;
       wen      : std_logic;
+      flush    : std_logic;
    end record;
 
    type cc_in_type is record
@@ -39,6 +41,10 @@ package cc_pkg is
    type cc_dcache_out_type is record
       rdat     : word;
       done     : std_logic;
+      snp_addr : address;
+      snp_ren  : std_logic;
+      snp_rxen : std_logic;
+      snp_wen  : std_logic;
    end record;
 
    type cc_out_type is record

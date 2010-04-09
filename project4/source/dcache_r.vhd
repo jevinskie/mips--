@@ -54,7 +54,7 @@ architecture twoproc of dcache_r is
 
    type set_type is array (1 downto 0) of way_type;
 
-   type cache_state_type is (cache_idle, cache_read, cache_write, cache_flush, cache_flush_write, cache_halt);
+   type cache_state_type is (cache_idle, cache_read, cache_read_ex, cache_write, cache_flush, cache_flush_write, cache_halt);
 
    type cache_reg_type is record
       state          : cache_state_type;
@@ -152,7 +152,7 @@ begin
                      v.cache.state := cache_write;
                   else
                      -- nothing needed a write-back, pull in the block for writing
-                     v.cache.state := cache_read;
+                     v.cache.state := cache_read_ex;
                   end if;
                else
                   -- the block is already in the cache, write to it and set dirty bit
@@ -163,7 +163,7 @@ begin
                v.cache.state := cache_flush;
             end if;
 
-         when cache_read =>
+         when cache_read | cache_read_ex =>
             -- if the memory isnt done with the current operation, do nothing
             if d.cc.done = '1' then
                -- the memory has finished its operation, we can proceed
@@ -273,7 +273,9 @@ begin
 
       q.cc.addr <= x"FEEDF00D";
       q.cc.ren <= '0';
+      q.cc.rxen <= '0';
       q.cc.wen <= '0';
+      q.cc.flush <= '0';
 
       q.cpu.halt <= '0';
 
@@ -283,6 +285,10 @@ begin
             -- default assignments are fine
          when cache_read =>
             q.cc.ren <= '1';
+            q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
+         when cache_read_ex =>
+            q.cc.ren <= '1';
+            q.cc.rxen <= '1';
             q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
          when cache_write =>
             q.cc.wen <= '1';
