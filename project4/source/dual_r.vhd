@@ -136,8 +136,16 @@ begin
       clk => clk, nrst => nrst, d => core1_in, q => core1_out
    );
 
+
+   -- overall output signals
    halt <= core0_out.halt and core1_out.halt;
    q.halt <= halt;
+   q.imem_addr <= mem_addr;
+   q.dmem_addr <= mem_addr;
+   q.imem_dat <= mem_rdat;
+   q.dmem_rdat <= mem_rdat;
+   q.dmem_wdat <= mem_wdat;
+
 
 end;
 

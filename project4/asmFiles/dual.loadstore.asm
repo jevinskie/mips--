@@ -19,7 +19,7 @@
 	ori		$1,$zero,0xF0
 	ori		$2,$zero,0x80
 	lui		$7,0xdead
-	ori		$7,$7,0xbeef
+	ori		$7,$7,0xbaaf
 	lw		$3,0($1)
 	lw		$4,4($1)
 	lw		$5,8($1)
@@ -31,9 +31,9 @@
 	halt			# that's all
 
 	org		0x00F0
-	cfw		0x7337
-	cfw		0x2701
-	cfw		0x1337
+	cfw		0x7336
+	cfw		0x2700
+	cfw		0x1336
 
 
 # Processor 2
@@ -42,7 +42,7 @@
         ori             $1,$zero,0x2F0
         ori             $2,$zero,0x280
         lui             $7,0xdead
-        ori             $7,$7,0xbeef
+        ori             $7,$7,0xb00f
         lw              $3,0($1)
         lw              $4,4($1)
         lw              $5,8($1)

@@ -93,17 +93,18 @@ begin
 
       -- route the signals
       if winner = icache0_consumer then
-         q.mem.ren      <= '1';
+         q.mem.ren      <= d.icache0.ren;
          q.mem.addr     <= d.icache0.addr;
          q.icache0.done <= mem_done;
       elsif winner = icache1_consumer then
-         q.mem.ren      <= '1';
-         q.mem.addr     <= d.icache0.addr;
+         q.mem.ren      <= d.icache1.ren;
+         q.mem.addr     <= d.icache1.addr;
          q.icache1.done <= mem_done;
       else
          -- coherency controller is the winner
          q.mem.ren      <= d.cc.ren;
          q.mem.wen      <= d.cc.wen;
+         q.mem.addr     <= d.cc.addr;
          q.cc.done      <= mem_done;
       end if;
 
