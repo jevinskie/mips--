@@ -75,14 +75,18 @@ begin
 
    -- combinatiorial process
    comb : process(d, r)
-      variable v           : reg_type;
-      variable index       : integer range 0 to 15;
-      variable block_off   : integer range 0 to 1;
-      variable wanted_tag  : tag_type;
-      variable hits        : unsigned(1 downto 0);
-      variable hit         : std_logic;
-      variable hit_way     : integer range 0 to 1;
-      variable evict_way   : integer range 0 to 1;
+      variable v              : reg_type;
+      variable index          : integer range 0 to 15;
+      variable snp_index      : integer range 0 to 15;
+      variable block_off      : integer range 0 to 1;
+      variable wanted_tag     : tag_type;
+      variable snp_wanted_tag : tag_type;
+      variable hits           : unsigned(1 downto 0);
+      variable snp_hits       : unsigned(1 downto 0);
+      variable hit            : std_logic;
+      variable snp_hit        : std_logic;
+      variable hit_way        : integer range 0 to 1;
+      variable evict_way      : integer range 0 to 1;
    begin
       -- default assignment
       v := r;
@@ -91,7 +95,9 @@ begin
 
       -- calculate various indicies
       index := to_integer(d.cpu.addr(6 downto 3));
+      snp_index := to_integer(d.cc.snp_addr(6 downto 3));
       wanted_tag := d.cpu.addr(31 downto 7);
+      snp_wanted_tag := d.cc.snp_addr(31 downto 7);
       block_off := to_integer(d.cpu.addr(2 downto 2));
 
       if r.ways(0)(index).valid = '0' then
@@ -112,9 +118,15 @@ begin
          else
             hits(i) := '0';
          end if;
+         if snp_wanted_tag = r.ways(i)(snp_index).tag and r.ways(i)(snp_index).valid = '1' then
+            snp_hits(i) := '1';
+         else
+            snp_hits(i) := '0';
+         end if;
       end loop;
 
       hit := or_reduce(hits);
+      snp_hit := or_reduce(snp_hits);
       hit_way := binlog_zero(to_integer(hits));
 
       if (d.cpu.ren = '1' or d.cpu.wen = '1') and hit = '1' then
@@ -275,14 +287,16 @@ begin
       q.cc.ren <= '0';
       q.cc.rxen <= '0';
       q.cc.wen <= '0';
-      q.cc.flush <= '0';
+      q.cc.flush <= snp_hit;
 
       q.cpu.halt <= '0';
 
       -- cache FSM output logic
       case r.cache.state is
          when cache_idle =>
-            -- default assignments are fine
+            if d.cpu.wen = '1' and hit = '1' then
+               q.cc.rxen <= '1';
+            end if;
          when cache_read =>
             q.cc.ren <= '1';
             q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";

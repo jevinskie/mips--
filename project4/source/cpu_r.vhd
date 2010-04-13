@@ -225,7 +225,7 @@ begin
       id_ex_reg_in.mem_ctrl   <= ctrl_out.mem_ctrl;
       id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
       
-      if hazard_out.stall = '1' or
+      if r_ins.op = halt_op or hazard_out.stall = '1' or
          (ex_mem_reg.mem_ctrl.mem_read = '1' or ex_mem_reg.mem_ctrl.mem_write = '1') then
          id_ex_reg_in.reg_dst <= 0;
          id_ex_reg_in.mem_ctrl.mem_read <= '0';
