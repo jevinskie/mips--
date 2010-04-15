@@ -19,6 +19,7 @@ package common_pipe is
    type mem_ctrl_type is record
       mem_read    : std_logic;
       mem_write   : std_logic;
+      coherent    : std_logic;
    end record;
 
    type wb_ctrl_type is record

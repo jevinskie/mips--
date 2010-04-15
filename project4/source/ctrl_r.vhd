@@ -33,6 +33,7 @@ begin
 
       q.mem_ctrl.mem_read  <= '0';
       q.mem_ctrl.mem_write <= '0';
+      q.mem_ctrl.coherent  <= '0';
       
       q.wb_ctrl.reg_src    <= alu_reg_src;
       q.wb_ctrl.reg_write  <= '1';
@@ -131,6 +132,16 @@ begin
             q.wb_ctrl.reg_write  <= '0';
 
          when ll_op =>
+            q.ex_ctrl.alu_op     <= add_alu_op;
+            q.wb_ctrl.reg_src    <= mem_reg_src;
+            q.mem_ctrl.mem_read  <= '1';
+            q.mem_ctrl.coherent  <= '1';
+
+         when sc_op =>
+            q.ex_ctrl.alu_op     <= add_alu_op;
+            q.wb_ctrl.reg_src    <= mem_reg_src;
+            q.mem_ctrl.mem_read  <= '1';
+            q.mem_ctrl.coherent  <= '1';
 
          when xori_op =>
             q.ex_ctrl.alu_src    <= immu_alu_src;

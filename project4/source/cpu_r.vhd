@@ -212,7 +212,8 @@ begin
 
 
 
-   process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl, reg_out, i_ins.imm)
+   process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl.mem_read,
+      ex_mem_reg.mem_ctrl.mem_write, ex_mem_reg.mem_ctrl.coherent, reg_out, i_ins.imm)
    begin
       -- feed the ID/EX pipeline register inputs
       id_ex_reg_in.rdat1      <= reg_out.rdat1;
@@ -230,6 +231,7 @@ begin
          id_ex_reg_in.reg_dst <= 0;
          id_ex_reg_in.mem_ctrl.mem_read <= '0';
          id_ex_reg_in.mem_ctrl.mem_write <= '0';
+         id_ex_reg_in.mem_ctrl.coherent <= '0';
          id_ex_reg_in.wb_ctrl.reg_src <= alu_reg_src;
          id_ex_reg_in.wb_ctrl.reg_write <= '0';
          id_ex_reg_in.halt <= '0';
@@ -348,7 +350,9 @@ begin
    ---------------------------------------
 
 
-   pipe_reg_proc : process(nrst, clk, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl, dcache_out.cpu.hit, icache_out.cpu.hit, dcache_in.cpu.wen, dcache_in.cpu.ren, pc_calc_out.branch)
+   pipe_reg_proc : process(nrst, clk, r_ins.op, hazard_out.stall, ex_mem_reg.mem_ctrl.mem_read,
+      ex_mem_reg.mem_ctrl.mem_write, ex_mem_reg.mem_ctrl.coherent, dcache_out.cpu.hit,
+      icache_out.cpu.hit, dcache_in.cpu.wen, dcache_in.cpu.ren, pc_calc_out.branch)
    begin
       if nrst = '0' then
          if_id_reg.ins <= to_word(0);
@@ -362,6 +366,7 @@ begin
          id_ex_reg.ex_ctrl.alu_op <= sll_alu_op;
          id_ex_reg.mem_ctrl.mem_read <= '0';
          id_ex_reg.mem_ctrl.mem_write <= '0';
+         id_ex_reg.mem_ctrl.coherent <= '0';
          id_ex_reg.wb_ctrl.reg_src <= alu_reg_src;
          id_ex_reg.wb_ctrl.reg_write <= '0';
          id_ex_reg.halt <= '0';
@@ -370,6 +375,7 @@ begin
          ex_mem_reg.reg_dst <= 0;
          ex_mem_reg.mem_ctrl.mem_read <= '0';
          ex_mem_reg.mem_ctrl.mem_write <= '0';
+         ex_mem_reg.mem_ctrl.coherent <= '0';
          ex_mem_reg.wb_ctrl.reg_src <= alu_reg_src;
          ex_mem_reg.wb_ctrl.reg_write <= '0';
          ex_mem_reg.halt <= '0';
