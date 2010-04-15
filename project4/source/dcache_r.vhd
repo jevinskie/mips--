@@ -145,15 +145,28 @@ begin
          end if;
       end if;
 
+
+      -- this lets the cache flush out lines that have been modified
+      -- and are now read by the other cache
+      if snp_hit = '1' and (d.cc.snp_ren or d.cc.snp_rxen) = '1' and
+         v.ways(snp_hit_way)(snp_index).dirty = '1' then
+         need_flush := '1';
+      else
+         need_flush := '0';
+      end if;
+
+      -- this lets the cache set shared lines to invalid when the other
+      -- processor writes to their own shared line. when this is the case,
+      -- the other processor emits ren = 0 and rxen = 1
+      if snp_hit = '1' and d.cc.snp_ren = '0' and d.cc.snp_rxen = '1' then
+         v.ways(snp_hit_way)(snp_index).valid := '0';
+         v.ways(snp_hit_way)(snp_index).dirty := '0';
+      end if;
+
+
       -- cache FSM next state logic
       case r.cache.state is
          when cache_idle =>
-            if snp_hit = '1' and (d.cc.snp_ren or d.cc.snp_rxen) = '1' and
-               v.ways(snp_hit_way)(snp_index).dirty = '1' then
-               need_flush := '1';
-            else
-               need_flush := '0';
-            end if;
 
             if d.cc.snp_addr(31 downto 3) = d.cpu.addr(31 downto 3) and
                d.cc.snp_rxen = '1' and ((d.cpu.wen or d.cpu.ren) = '1') then
@@ -288,6 +301,10 @@ begin
                   -- this is the last word in the block, leave the read state
                   v.cache.counter := (others => '0');
 
+                  -- mark the line as invalid
+                  v.ways(r.cache.way_counter)(r.cache.line_counter).valid := '0';
+                  v.ways(r.cache.way_counter)(r.cache.line_counter).dirty := '0';
+
                   if r.cache.line_counter = 15 then
                      v.cache.line_counter := 0;
                      if r.cache.way_counter = 1 then
@@ -359,6 +376,7 @@ begin
          when cache_write =>
             q.cc.wen <= '1';
             q.cc.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
+            -- q.cc.wdat is set by defaults
 
          when cache_snp_flush =>
             q.cc.wen <= '1';
