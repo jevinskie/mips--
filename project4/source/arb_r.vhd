@@ -23,6 +23,8 @@ architecture twoproc of arb_r is
 
    type reg_type is record
       last_serviced  : consumer_type;
+      mem_done       : std_logic;
+      rdat           : word;
    end record;
 
    signal r, rin : reg_type;
@@ -33,7 +35,6 @@ begin
    comb : process(d, r)
       variable v        : reg_type;
       variable winner   : consumer_type;
-      variable mem_done : std_logic;
    begin
       -- default assignment
       v := r;
@@ -66,10 +67,13 @@ begin
 
       -- we have to update the last consumer register
       if d.mem.state = ready_mem_state then
+         v.mem_done := '1';
+         v.rdat := d.mem.rdat;
+      end if;
+
+      if r.mem_done = '1' then
          v.last_serviced := winner;
-         mem_done := '1';
-      else
-         mem_done := '0';
+         v.mem_done := '0';
       end if;
 
       -- drive the register inputs
@@ -82,9 +86,9 @@ begin
       q.icache1.done <= '0';
       q.cc.done      <= '0';
       
-      q.icache0.rdat <= d.mem.rdat;
-      q.icache1.rdat <= d.mem.rdat;
-      q.cc.rdat      <= d.mem.rdat;
+      q.icache0.rdat <= r.rdat;
+      q.icache1.rdat <= r.rdat;
+      q.cc.rdat      <= r.rdat;
       
       q.mem.ren      <= '0';
       q.mem.wen      <= '0';
@@ -92,20 +96,29 @@ begin
       q.mem.wdat     <= d.cc.wdat;
 
       -- route the signals
+
       if winner = icache0_consumer then
-         q.mem.ren      <= d.icache0.ren;
          q.mem.addr     <= d.icache0.addr;
-         q.icache0.done <= mem_done;
+         q.icache0.done <= r.mem_done;
       elsif winner = icache1_consumer then
-         q.mem.ren      <= d.icache1.ren;
          q.mem.addr     <= d.icache1.addr;
-         q.icache1.done <= mem_done;
+         q.icache1.done <= r.mem_done;
       else
          -- coherency controller is the winner
-         q.mem.ren      <= d.cc.ren;
-         q.mem.wen      <= d.cc.wen;
          q.mem.addr     <= d.cc.addr;
-         q.cc.done      <= mem_done;
+         q.cc.done      <= r.mem_done;
+      end if;
+
+      if r.mem_done = '0' then
+         if winner = icache0_consumer then
+            q.mem.ren      <= d.icache0.ren;
+         elsif winner = icache1_consumer then
+            q.mem.ren      <= d.icache1.ren;
+         else
+            -- coherency controller is the winner
+            q.mem.ren      <= d.cc.ren;
+            q.mem.wen      <= d.cc.wen;
+         end if;
       end if;
 
 
@@ -117,6 +130,8 @@ begin
    begin
       if nrst = '0' then
          r.last_serviced <= icache1_consumer;
+         r.mem_done <= '0';
+         r.rdat <= to_word(0);
       elsif rising_edge(clk) then
          r <= rin;
       end if;

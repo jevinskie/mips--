@@ -86,7 +86,9 @@ begin
       variable hit            : std_logic;
       variable snp_hit        : std_logic;
       variable hit_way        : integer range 0 to 1;
+      variable snp_hit_way    : integer range 0 to 1;
       variable evict_way      : integer range 0 to 1;
+      variable snp_conflict   : std_logic;
    begin
       -- default assignment
       v := r;
@@ -128,6 +130,7 @@ begin
       hit := or_reduce(hits);
       snp_hit := or_reduce(snp_hits);
       hit_way := binlog_zero(to_integer(hits));
+      snp_hit_way := binlog_zero(to_integer(snp_hits));
 
       if (d.cpu.ren = '1' or d.cpu.wen = '1') and hit = '1' then
          -- if the hit is on the 0th way
@@ -143,7 +146,20 @@ begin
       -- cache FSM next state logic
       case r.cache.state is
          when cache_idle =>
-            if d.cpu.ren = '1' then
+            if snp_hit = '1' and d.cc.snp_rxen = '1' then
+               v.ways(hit_way)(index).valid := '0';
+            end if;
+
+            if d.cc.snp_addr(31 downto 3) = d.cpu.addr(31 downto 3) and
+               d.cc.snp_rxen = '1' and ((d.cpu.wen or d.cpu.ren) = '1') then
+               snp_conflict := '1';
+            else
+               snp_conflict := '0';
+            end if;
+
+            if snp_conflict = '1' then
+               -- stay in idle, nop
+            elsif d.cpu.ren = '1' then
                
                if hit = '0' then
                   if v.ways(evict_way)(index).valid = '1' and v.ways(evict_way)(index).dirty = '1' then
@@ -287,7 +303,10 @@ begin
       q.cc.ren <= '0';
       q.cc.rxen <= '0';
       q.cc.wen <= '0';
-      q.cc.flush <= snp_hit;
+      q.cc.flush <= '0';
+
+      q.cc.snp_conflict <= snp_conflict;
+      q.cc.snp_hit <= snp_hit;
 
       q.cpu.halt <= '0';
 
@@ -296,6 +315,9 @@ begin
          when cache_idle =>
             if d.cpu.wen = '1' and hit = '1' then
                q.cc.rxen <= '1';
+               -- make sure the an address in the cache line is always output
+               -- when rxen is asserted
+               q.cc.addr <= d.cpu.addr(31 downto 3) & "000";
             end if;
          when cache_read =>
             q.cc.ren <= '1';

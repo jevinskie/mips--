@@ -40,6 +40,8 @@ package dcache_pkg is
       rxen     : std_logic;
       wen      : std_logic;
       flush    : std_logic;
+      snp_conflict : std_logic;
+      snp_hit : std_logic;
    end record;
 
    type dcache_cpu_out_type is record

@@ -51,6 +51,7 @@ package cc_pkg is
       mem      : cc_mem_out_type;
       dcache0  : cc_dcache_out_type;
       dcache1  : cc_dcache_out_type;
+      new_req  : std_logic;
    end record;
 
    component cc_r
