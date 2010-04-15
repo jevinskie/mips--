@@ -54,7 +54,8 @@ architecture twoproc of dcache_r is
 
    type set_type is array (1 downto 0) of way_type;
 
-   type cache_state_type is (cache_idle, cache_read, cache_read_ex, cache_write, cache_flush, cache_flush_write, cache_halt);
+   type cache_state_type is (cache_idle, cache_read, cache_read_ex, cache_write, cache_snp_flush,
+                             cache_flush, cache_flush_write, cache_halt);
 
    type cache_reg_type is record
       state          : cache_state_type;
@@ -89,6 +90,7 @@ begin
       variable snp_hit_way    : integer range 0 to 1;
       variable evict_way      : integer range 0 to 1;
       variable snp_conflict   : std_logic;
+      variable need_flush     : std_logic;
    begin
       -- default assignment
       v := r;
@@ -146,8 +148,11 @@ begin
       -- cache FSM next state logic
       case r.cache.state is
          when cache_idle =>
-            if snp_hit = '1' and d.cc.snp_rxen = '1' then
-               v.ways(hit_way)(index).valid := '0';
+            if snp_hit = '1' and (d.cc.snp_ren or d.cc.snp_rxen) = '1' and
+               v.ways(snp_hit_way)(snp_index).dirty = '1' then
+               need_flush := '1';
+            else
+               need_flush := '0';
             end if;
 
             if d.cc.snp_addr(31 downto 3) = d.cpu.addr(31 downto 3) and
@@ -157,7 +162,9 @@ begin
                snp_conflict := '0';
             end if;
 
-            if snp_conflict = '1' then
+            if need_flush = '1' then
+               v.cache.state := cache_snp_flush;
+            elsif snp_conflict = '1' then
                -- stay in idle, nop
             elsif d.cpu.ren = '1' then
                
@@ -226,6 +233,26 @@ begin
                   v.ways(evict_way)(index).dirty := '0';
                end if;
             end if;
+
+         when cache_snp_flush =>
+            -- if the memory isnt done with the current operation, do nothing
+            if d.cc.done = '1' then
+               -- the memory has finished its operation, we can proceed
+               v.cache.counter := r.cache.counter + 1;
+
+               if r.cache.counter = 1 then
+                  -- this is the last word in the block, leave the read state
+                  v.cache.state := cache_idle;
+                  -- reset counter for next user
+                  v.cache.counter := (others => '0');
+                  -- block is no longer dirty
+                  v.ways(snp_hit_way)(snp_index).dirty := '0';
+                  if d.cc.snp_rxen = '1' then
+                     v.ways(snp_hit_way)(snp_index).valid := '0';
+                  end if;
+               end if;
+            end if;
+
 
          when cache_flush =>
             if  v.ways(r.cache.way_counter)(r.cache.line_counter).valid = '1' and
@@ -303,7 +330,7 @@ begin
       q.cc.ren <= '0';
       q.cc.rxen <= '0';
       q.cc.wen <= '0';
-      q.cc.flush <= '0';
+      q.cc.flush <= need_flush;
 
       q.cc.snp_conflict <= snp_conflict;
       q.cc.snp_hit <= snp_hit;
@@ -319,16 +346,24 @@ begin
                -- when rxen is asserted
                q.cc.addr <= d.cpu.addr(31 downto 3) & "000";
             end if;
+
          when cache_read =>
             q.cc.ren <= '1';
             q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
+
          when cache_read_ex =>
             q.cc.ren <= '1';
             q.cc.rxen <= '1';
             q.cc.addr <= d.cpu.addr(31 downto 3) & r.cache.counter & "00";
+
          when cache_write =>
             q.cc.wen <= '1';
             q.cc.addr <= v.ways(evict_way)(index).tag & d.cpu.addr(6 downto 3) & r.cache.counter & "00";
+
+         when cache_snp_flush =>
+            q.cc.wen <= '1';
+            q.cc.addr <= v.ways(snp_hit_way)(snp_index).tag & d.cc.snp_addr(6 downto 3) & r.cache.counter & "00";
+            q.cc.wdat <= v.ways(snp_hit_way)(snp_index).words(to_integer(r.cache.counter));
 
          when cache_flush =>
             -- defaults are fine
