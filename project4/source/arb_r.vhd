@@ -154,6 +154,7 @@ begin
 
                when cc_consumer =>
                   q.mem.addr     <= d.cc.addr;
+                  q.mem.wdat     <= d.cc.wdat;
                   q.cc.done      <= r.mem_done;
 
                when others =>
