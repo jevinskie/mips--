@@ -355,7 +355,7 @@ begin
    mem_wb_reg_in.halt      <= ex_mem_reg.halt;
 
    -- the ll/sc logic process
-   llsc_logic_proc : process(clk, nrst, d.llsc, ex_mem_reg.mem_ctrl, dmem_addr)
+   llsc_logic_proc : process(clk, nrst, d.llsc, ex_mem_reg.mem_ctrl, dmem_addr, llsc_reg)
       variable v : llsc_reg_type;
    begin
       v := llsc_reg;
