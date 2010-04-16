@@ -32,6 +32,12 @@ end;
 architecture structural of cpu_r is
 
 
+   type llsc_reg_type is record
+      addr  : address;
+      valid : std_logic;
+   end record;
+
+
    signal alu_in        : alu_in_type;
    signal alu_out       : alu_out_type;
 
@@ -58,6 +64,9 @@ architecture structural of cpu_r is
    signal i_ins : i_type;
 
    signal z : std_logic;
+
+   -- ll/sc register signals
+   signal llsc_reg, llsc_reg_in     : llsc_reg_type;
 
    -- pipeline register signals
    signal if_id_reg, if_id_reg_in   : if_id_reg_type;
@@ -213,7 +222,8 @@ begin
 
 
    process(hazard_out.stall, ctrl_out, r_ins, ex_mem_reg.mem_ctrl.mem_read,
-      ex_mem_reg.mem_ctrl.mem_write, ex_mem_reg.mem_ctrl.coherent, reg_out, i_ins.imm)
+      ex_mem_reg.mem_ctrl.mem_write, ex_mem_reg.mem_ctrl.coherent, reg_out,
+      i_ins.imm, mem_wb_reg.wb_ctrl)
    begin
       -- feed the ID/EX pipeline register inputs
       id_ex_reg_in.rdat1      <= reg_out.rdat1;
@@ -227,7 +237,8 @@ begin
       id_ex_reg_in.wb_ctrl    <= ctrl_out.wb_ctrl;
       
       if r_ins.op = halt_op or hazard_out.stall = '1' or
-         (ex_mem_reg.mem_ctrl.mem_read = '1' or ex_mem_reg.mem_ctrl.mem_write = '1') then
+         (ex_mem_reg.mem_ctrl.mem_read = '1' or ex_mem_reg.mem_ctrl.mem_write = '1') or
+         (r_ins.op = jal_op and mem_wb_reg.wb_ctrl.reg_write = '1') then
          id_ex_reg_in.reg_dst <= 0;
          id_ex_reg_in.mem_ctrl.mem_read <= '0';
          id_ex_reg_in.mem_ctrl.mem_write <= '0';
@@ -334,14 +345,51 @@ begin
 
    -- feed the MEM/WB pipeline register inputs
    mem_wb_reg_in.alu_res   <= ex_mem_reg.alu_res;
-   mem_wb_reg_in.lw_res    <= dmem_rdat;
+   mem_wb_reg_in.lw_res    <= dmem_rdat when
+                                 not (ex_mem_reg.mem_ctrl.coherent = '1' and ex_mem_reg.mem_ctrl.mem_write = '1') else
+                              to_word(1) when llsc_reg.valid = '1' else
+                              to_word(0);
    mem_wb_reg_in.reg_dst   <= ex_mem_reg.reg_dst;
 
    mem_wb_reg_in.wb_ctrl   <= ex_mem_reg.wb_ctrl;
    mem_wb_reg_in.halt      <= ex_mem_reg.halt;
 
+   -- the ll/sc logic process
+   llsc_logic_proc : process(clk, nrst, d.llsc, ex_mem_reg.mem_ctrl, dmem_addr)
+      variable v : llsc_reg_type;
+   begin
+      v := llsc_reg;
+
+      if ex_mem_reg.mem_ctrl.coherent = '1' then
+         if ex_mem_reg.mem_ctrl.mem_read = '1' then
+            -- ll instruction
+            v.addr   := dmem_addr;
+            v.valid  := '1';
+         else
+            -- sc instruction
+            v.valid  := '0';
+         end if;
+      end if;
+
+      if d.llsc.addr = llsc_reg.addr and d.llsc.wen = '1' then
+         v.valid := '0';
+      end if;
+
+      llsc_reg_in <= v;
+
+   end process;
 
 
+   -- the ll/sc register process
+   llsc_reg_proc : process(clk, nrst)
+   begin
+      if nrst = '0' then
+         llsc_reg.addr <= to_word(0);
+         llsc_reg.valid <= '0';
+      elsif rising_edge(clk) then
+         llsc_reg <= llsc_reg_in;
+      end if;
+   end process;
 
    ---------------------------------------
    ---------------------------------------
@@ -425,6 +473,7 @@ begin
    hazard_in.ex_dst  <= id_ex_reg.reg_dst;
    hazard_in.mem_dst <= ex_mem_reg.reg_dst;
    hazard_in.wb_dst  <= mem_wb_reg.reg_dst;
+   hazard_in.wb_wb_ctrl <= mem_wb_reg.wb_ctrl;
 
 
    ---------------------------------------
@@ -433,9 +482,11 @@ begin
    ---------------------------------------
    ---------------------------------------
 
-   q.halt   <= dcache_out.cpu.halt;
-   q.dcache <= dcache_out.cc;
-   q.icache <= icache_out.mem;
+   q.halt      <= dcache_out.cpu.halt;
+   q.dcache    <= dcache_out.cc;
+   q.icache    <= icache_out.mem;
+   q.llsc.addr <= llsc_reg.addr;
+   q.llsc.wen  <= ex_mem_reg.mem_ctrl.mem_write and ex_mem_reg.mem_ctrl.coherent;
 
 end;
 

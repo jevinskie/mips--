@@ -2,6 +2,7 @@
 
 
 use work.common.all;
+use work.common_pipe.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -16,6 +17,7 @@ package hazard_pkg is
       ex_dst   : reg_index;
       mem_dst  : reg_index;
       wb_dst   : reg_index;
+      wb_wb_ctrl : wb_ctrl_type;
    end record;
 
    type hazard_out_type is record

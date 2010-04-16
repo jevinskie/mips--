@@ -17,7 +17,7 @@ lock:
 aquire:
 	ll              $t0, 0($a0)       					# load lock location
         bne             $t0, $0, aquire   					# wait on lock to be open
-        addi            $t0, $t0, 1
+        addiu           $t0, $t0, 1
         sc              $t0, 0($a0)
         beq             $t0, $0, lock     					# if sc failed retry
         jr              $ra
@@ -32,6 +32,9 @@ unlock:
 # main function does something ugly but demonstrates beautifully
 mainp0:
 	push		$ra							# save return address
+#   addiu    $sp, $sp, -4
+#   sw       $ra, 0($sp)
+#   halt
 	ori		$a0, $zero, l1						# move lock to arguement register
 	jal		lock							# try to aquire the lock
 	# critical code segment
@@ -44,8 +47,6 @@ mainp0:
 	jal		unlock							# release the lock
 	pop		$ra							# get return address
 	jr		$ra							# return to caller
-l1:
-	cfw	0x0
 
 
 #----------------------------------------------------------
@@ -72,5 +73,10 @@ mainp1:
 	pop		$ra							# get return address
 	jr		$ra							# return to caller
 
+   org 0x1000
+l1:
+   cfw   0
+
+   org 0x2000
 res:
 	cfw 0x0									# end result should be 3

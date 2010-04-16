@@ -140,7 +140,7 @@ begin
          when sc_op =>
             q.ex_ctrl.alu_op     <= add_alu_op;
             q.wb_ctrl.reg_src    <= mem_reg_src;
-            q.mem_ctrl.mem_read  <= '1';
+            q.mem_ctrl.mem_write <= '1';
             q.mem_ctrl.coherent  <= '1';
 
          when xori_op =>

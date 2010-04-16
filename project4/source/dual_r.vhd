@@ -135,6 +135,10 @@ begin
    core1_in.dcache.snp_rxen   <= cc_out.dcache1.snp_rxen;
    core1_in.dcache.snp_wen    <= cc_out.dcache1.snp_wen;
 
+   -- ll/sc connections
+   core0_in.llsc              <= core1_out.llsc;
+   core1_in.llsc              <= core0_out.llsc;
+
    -- core0
    core0_b : cpu_r generic map (
       reset_vector => x"00000000"
