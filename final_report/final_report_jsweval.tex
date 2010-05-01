@@ -35,16 +35,19 @@ ECE437: Computer Design and Prototyping}
 % executive overview remember
 % this should be on a page by itself
 \section{Executive Overview}
-As part of the ECE437 course, I have realized a MIPS-subset CPU in single-cycle and pipelined form that is synthesizable for the Cyclone II FPGAs. The subset of MIPS implemented allows for general purpose computing while still keeping the design simple. The first design completed, the single-cycle implementation, introduced me to the major components of the CPU: memory, ALU, control logic, and the register file. The register file and ALU were implemented by myself while the RAM was provided by the course. After verification of their correctness, the rest of the single-cycle CPU was built around them. This implementation was important in teaching me how to better debug complex designs with many signals --- a skill that proved to be crucial to my pipelined design. The single-cycle CPU works correctly for all test cases, runs at 22~MHz, and has an average CPI of $\approx 1.2$.\\
+As part of the ECE437 course, I have realized a MIPS-subset CPU in single-cycle, pipelined, pipelined with cache, and dual-core pipelined with cache forms that are synthesizable for the Cyclone II FPGAs. The subset of MIPS implemented allows for general purpose computing while still keeping the design simple. The first design completed, the single-cycle implementation, introduced me to the major components of the CPU: memory, ALU, control logic, and the register file. The single-cycle CPU works correctly for all test cases, runs at 22~MHz, and has an average CPI of $\approx 1.2$. The pipelined design required careful navigation of tricky data hazards (some of which were only unearthed during the last lab!) but paid off with a much faster clock rate. It runs correctly at 75~MHz with a CPI of $\approx 39$ with maximum memory latency. Instruction and data caches were added to the pipelined design in order to decrease the average memory access time. The caches slowed the design down to 28~MHz but drastically decreases the CPI to $\approx 6.1$ at maximum memory latency.\\
 
-The pipelined implementation was built upon the single-cycle implementation. It broke up the CPU into the classic RISC pipeline: IF, ID, EX, MEM, and WB stages. This implementation gave me insight into the problems with the complex hazards in a pipelined processor. Multiple in-flight instructions and a plethora of signals made this design even more difficult to debug. By forsaking a data forwarding unit, the design was simplified and correct functionality was achieved. This design passes all tests, runs at 75~MHz, and has an average CPI of $\approx 2.5$. In the rest of this report I will detail the design of the CPUs, do debugging exercises, and discuss the results obtained from the designs.\\
+Using the cached, pipelined design, I created a dual core version of the CPU. This required a coherency controller between the data caches and an implementation of the MSI coherency protocol. In addition, the \texttt{LL}/\texttt{SC} instruction were implemented for locking. For the simple dual core design, I opted to include most of the coherency logic in the data caches themselves, making the coherency controller fairly trivial. This design decision would not scale to more cores but won in its simplicity for my purposes. The dual core design worked correctly for all test cases and ran at a glacial 7~MHz (due to long critical paths in the caches and a nearly full FPGA) with the same CPI slightly higher (due to memory access contention between cores) than the cached pipelined design. Of course, with two cores, the throughput is essentially doubled for embarrassingly parallel workloads. The dual core design was difficult to implement but I am now confident in my understanding of CPU design.\\
 
 \newpage
 \section{Processor and Cache Design}
 
-Both the single-cycle and pipelined designs that I implemented closely followed the course textbook's designs. I feel that the most significant design choice was my coding methodology. Both designs are coded almost entirely in behavioral VHDL. I find this type of code to be much easier to write and debug because it can be single-stepped in a debugger yet, if written carefully, can compile down to logic that is just as efficient as a structural design. Also central to my coding methodology were VHDL records. The input and output signals to a block were wrapped in a record (similar to C \texttt{struct}s). Using records, one can add and remove signals to blocks without the time-consuming and error-prone edits of port and entity declarations. The records also group the signals in the waveform viewer, allowing for a tidier waveform window. I extensively use \texttt{numeric\_std} types and operators in my code to vastly cut down on code size (my ALU was two lines of code per operation) and to let the synthesizer automatically schose the best implementation in hardware. Most non-numeric types are declared as enumeration types. For example, the instructions are decoded into opcode enumerations. These enumerated types are human-readable in waveforms and source code instead of appearing as indecipherable bitstrings.\\
+All of the designs that I implemented closely followed the course textbook's designs. I feel that the most significant design choice was my coding methodology. All designs are coded almost entirely in behavioral VHDL. I find this type of code to be much easier to write and debug because it can be single-stepped in a debugger yet, if written carefully, can compile down to logic that is just as efficient as a structural design (excepting one case that I will talk about later). Also central to my coding methodology were VHDL records. The input and output signals to a block were wrapped in a record (similar to C \texttt{struct}s). Using records, one can add and remove signals to blocks without the time-consuming and error-prone edits of port and entity declarations. The records also group the signals in the waveform viewer, allowing for a tidier waveform window. I extensively use \texttt{numeric\_std} types and operators in my code to vastly cut down on code size (my ALU was two lines of code per operation) and to let the synthesizer automatically chose the best implementation in hardware. Most non-numeric types are declared as enumeration types. For example, the instructions are decoded into opcode enumerations. These enumerated types are human-readable in waveforms and source code instead of appearing as indecipherable bitstrings.\\
 
-My single-cycle design was quite straightforward and consisted mainly of the register file, ALU, instruction/data memories, and control logic. The CPI of this design is very close to 1 because every single instruction takes just 1 cycle except for \texttt{lw} and \texttt{sw} instructions which take 2 cycles due to 2-cycle memory access. The long critical paths prevent the design from running at high clock speeds. The pipelined design reuses most parts of the single-cycle design while adding a memory arbiter (to control access to the now shared memory), pipeline registers, and hazard detection. Because the logic elements of the FPGA each have a DFF, the additional pipeline registers did not occur much overhead. Most of the registers were merged into already existent logic elements. In this aspect, the pipelining was ``free''. Due to time constraints I did not implement any forwarding logic, meaning that any dependent instructions will stall the pipeline. Despite this, the CPI of the pipelined design was not terrible, as discussed in the Results section. Also discussed in that section is how the RAM is the bottleneck of the design. This means that it might be possible to add forwarding logic (decreasing CPI) without lowering f$_{\textrm{max}}$.
+The pipelined design without cache was by far the fastest design in terms of clock speed. This is because the pipeline registers chopped up the critical path into much smaller parts. However, without a cache the performance was terrible with maximum memory latency (CPI $\approx 39$). Adding a 16-instruction instruction cache and a 64-word, 2-way associative, LRU data cache to the design reduced the CPI to $\approx 6.1$. The cost of this massive improvement to the CPI was a slower $f_{max}$. The cached design runs at 28~MHz but is about $2 \times$ as fast as the non-cached design in terms of wall time. This slowdown in clock speed was due to a very long critical path through the data cache. Examining the resulting FPGA resources indicated that the behavioral coding style utilized in the data cache created many unneeded, bloated muxes --- some over 1000 bits wide! I contemplated a redesign in pure RTL but the effort would have been too great.\\
+
+The dual core design required more than simply copy-pasting two cores into a single VHDL file. I had to add a memory arbiter to arbitrate the RAM between the instruction caches and the coherency controller. This arbiter made sure to store the last serviced consumer so that no single consumer would be starved of data. The coherency controller sat between the two data caches and the memory arbiter Its purpose was to ensure data coherency thorough the MSI protocol. My implemented coherency controller was really just another memory arbiter that negotiated access to the RAM between the data caches, taking into account that one cache may need to perform a flush action on behalf of another. The majority of the coherency logic was placed into the data caches for simplicity. Each cache snoops the other cache's memory accesses. If both caches try to access the same line, one cache will wait for the other (the cache granted memory access via the coherency controller) to complete its access before continuing. To ensure consistency after processor writes to a shared line, a cache will direct its sibling to pause while it flushes the line to memory. The paused cache will then resume and read the written-back value from RAM. Each core has an \texttt{LL}/\texttt{SC} link register that is wired to the other core. Each core checks the other's link register during these atomic operations to ensure that they execute correctly. The dual core design, with two bloated data caches used $\approx 90\%$ of the FPGA resources (6 hour synthesis!). The fitter, faced with little breathing room was unable to keep the clock rate up. Thus, the final design runs at 7~MHz. The CPI is slightly increased over the single core design due to memory access contention. Especially during start-up, both cores are trying to fill their instruction and data caches and will often wait for the other memory consumers to finish before proceeding.
+
 
 \newpage
 
@@ -116,64 +119,67 @@ Another possible explanation is that the controller which arbitrates access to t
 \newpage
   \section{Results}
   
-The performance results for the single-cycle and pipelined processor are displayed in Table~\ref{tab:single} and Table~\ref{tab:pipe}, respectively. The methods used to calculate the figures will be discussed later. The single-cycle design was the ``bare-bones'' implementation of the CPU --- it is simple and slow. The reason for its poor performance is that the critical path is very long. The pipelined CPU breaks up this critical path into stages, allowing for a higher clock frequency and better performance. In the tables, f$_{\textrm{max}}$ is the maximum allowed operating frequency of the CPU as determined by Quartus. Quartus calculates this figure by determining the critical paths and ensuring that the setup and hold timings are not violated. CPI is \textbf{C}ycles \textbf{P}er \textbf{I}nstruction and is calculated by dividing the total number of cycles for all tests by the total number of executed instructions for all tests. Latency is the average time that it takes to complete a single instruction and is calculated as $CPI \div f_{max}$. MIPS or \textbf{M}illions of \textbf{I}nstructions \textbf{P}er \textbf{S}econd is simply calculated by dividing f$_{\textrm{max}}$~(in MHz) by the CPI. The LE figure is the number of \textbf{L}ogic \textbf{E}lements used in the FPGA to implement the CPU. The number of registers (D flip-flops) used by the designs is also given. Note that these registers are often part of other LEs and rarely is a LE used just as a register.\\
-
-The critical path for the single-cycle design goes through most of the datapath, originating at the instruction RAM, passing through the register file, the ALU adder, finally terminating at the write data port of the register file. This seems logical because an instruction that reads from the register file, operates on its operands in the ALU and writes back to the register file exercises a lot of combinational logic. The critical path for the pipelined design originates inside the \texttt{vram} module and immediately terminates at the IF/ID pipeline register with no intermediate logic. This means that my design is as fast as it can be --- it is bottlenecked by the slow RAM. This makes sense because the RAM in the FPGA is slower than the logic blocks.\\
-
-Graphs of the execution time for \texttt{fib.asm}, \texttt{mult.asm}, and \texttt{search.asm} files are shown in Figures \ref{fig:fib_chart}, \ref{fig:mult_chart}, and \ref{fig:search_chart} respectively. For all tests with the single-cycle CPU, the number of cycles executed were different for the 100 MHz, 250 MHz, and 500 MHz tests, showing that the CPU doesn't have enough slack to operate correctly at those speeds. The same behavior was seen in the pipelined CPU at the 250 MHz and 500 MHz speeds. For every test, at a given clock, the pipelined design was always slower. This stems from the higher CPI of the pipelined CPU. This should not be taken to indicate that the pipelined design is slower --- it can achieve a higher clock rate than the single-cycle design, giving it a higher overall MIPS. Since we are comparing the same architecture running the same programs, the calculated MIPS figures can serve as an ultimate metric of the designs' performances. From the MIPS metrics, it is clear that the pipelined CPU is over 50\% faster than the single-cycle design. This conforms to my expectations. I knew that the pipelined CPU would have a higher CPI metric but I predicted, as was the case, that this is more than compensated by its increase in f$_{\textrm{max}}$. I was somewhat surprised that the lack of a forwarding unit in the pipeline design didn't degrade the CPI more than it did. Since the critical path was due to the RAM, I could probably add a forwarding unit without lowering f$_{\textrm{max}}$. This would decrease the CPI of the pipelined design and increase its MIPS. In theory, at an infinite clock rate, the program would execute instantly. However, it was already shown that the designs to not operate correctly at clock rates much higher than their calculated f$_{\textrm{max}}$'s.\\
+The performance results for the design are displayed in Tables~\ref{tab:perf_single}--\ref{tab:perf_dual}. The single core design was the simplest implementation of the course's instruction set. The pipeline CPU added pipeline registers to break up the critical path, tripling the speed. The cached, pipelined design added instruction and data caches to the CPU to reduce the average memory access time. It performed excellently in doing so --- the CPI was reduced by $\approx 6.4 \times$.\\
 
 \begin{table}
 \begin{center}
 
-  \caption{Single-cycle CPU Performance}
-  \begin{tabular}{| c | c | c | c | c | c |}
+  \caption{Single-cycle Performance (no memory latency)}
+  \begin{tabular}{| c | c | c | c | c |}
   \hline
-  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & MIPS & LEs & Registers \\ \hline
- 23 & 1.2 & 52 & 19.1 & 3,059 & 1,231 \\ \hline
+  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & LEs & Registers \\ \hline
+ 23 & 1.2 & 260 & 3,059 & 1,231 \\ \hline
   \end{tabular}
   \end{center}
 
-  \label{tab:single}
+  \label{tab:perf_single}
 \end{table}
 
 \begin{table}
 \begin{center}
 
-  \caption{Pipelined CPU Performance}
-  \begin{tabular}{| c | c | c | c | c | c |}
+  \caption{Pipelined Processor Performance (max memory latency)}
+  \begin{tabular}{| c | c | c | c | c |}
   \hline
-  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & MIPS & LEs & Registers \\ \hline
-  75 & 2.5 & 33 & 30 & 3,045 & 1,475 \\ \hline
+  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & LEs & Registers \\ \hline
+ 75 & 39 & 2,600 &  3,045 & 1,475 \\ \hline
   \end{tabular}
-  \label{tab:pipe}
   \end{center}
 
+  \label{tab:perf_pipe}
+\end{table}
+
+\begin{table}
+\begin{center}
+
+  \caption{Cached, Pipelined Processor Performance (max memory latency)}
+  \begin{tabular}{| c | c | c | c | c |}
+  \hline
+  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & LEs & Registers \\ \hline
+ 28 & 6.1 & 1,090 & 13,186 & 5,359 \\ \hline
+  \end{tabular}
+  \end{center}
+
+  \label{tab:perf_cache}
 \end{table}
 
 
-\begin{figure}
-	\begin{center}
-		\includegraphics{fib_chart}
-	\end{center}
-	\caption{Fibonnaci Test}
-	\label{fig:fib_chart}
-\end{figure}
 
-\begin{figure}
-	\begin{center}
-		\includegraphics{mult_chart}
-	\end{center}
-	\caption{Multiplication Test}
-	\label{fig:mult_chart}
-\end{figure}
+\begin{table}
+\begin{center}
 
-\begin{figure}
-	\begin{center}
-		\includegraphics{search_chart}
-	\end{center}
-	\caption{Search Test}
-	\label{fig:search_chart}
-\end{figure}
+  \caption{Dual Core, Cached, Pipelined Processor Performance (max memory latency)}
+  \begin{tabular}{| c | c | c | c | c |}
+  \hline
+  f$_{\textrm{max}}$ (MHz) & CPI & Latency (ns) & LEs & Registers \\ \hline
+ 7 & 7.3 & 5,215 & 28,128 & 11,790 \\ \hline
+  \end{tabular}
+  \end{center}
+
+  \label{tab:perf_dual}
+\end{table}
+
+
 
   \section{Conclusion}
 
